@@ -837,6 +837,48 @@
     "reverb": 0.3
    },
    "humanize": true
+  },
+  {
+   "id": "keys-goan-flute",
+   "role": "keys",
+   "provenance": {
+    "author": "psysynth",
+    "license": "original",
+    "created": "2026-08-14"
+   },
+   "osc": {
+    "a": {
+     "wave": "sine",
+     "gain": 0.5
+    },
+    "b": {
+     "wave": "triangle",
+     "semitones": 12,
+     "gain": 0.2
+    }
+   },
+   "glideMs": 35,
+   "filter": {
+    "type": "lp",
+    "cutoff": 2800,
+    "res": 0.18,
+    "envDepth": 0.3,
+    "envAttackMs": 12,
+    "envDecayMs": 450,
+    "velTrack": 0.12
+   },
+   "amp": {
+    "attackMs": 14,
+    "decayMs": 550,
+    "sustain": 0.75,
+    "releaseMs": 400
+   },
+   "driveDb": 0,
+   "sends": {
+    "delay": 0.22,
+    "reverb": 0.32
+   },
+   "humanize": true
   }
  ]
 }
