@@ -23,7 +23,7 @@ export const DEFAULT_VARIANCE: VarianceSettings = {
 }
 
 export class VarianceRules {
-  private readonly rng: Rng
+  private rng: Rng
   private readonly settings: VarianceSettings
 
   constructor(seed: number, settings: VarianceSettings = DEFAULT_VARIANCE) {
@@ -33,7 +33,7 @@ export class VarianceRules {
 
   /** Reset the stream (new phrase boundary / manifest reload). */
   reseed(seed: number): void {
-    ;(this as { rng: Rng }).rng = new Rng(seed >>> 0)
+    this.rng = new Rng(seed >>> 0)
   }
 
   detuneDriftCents(): number {
@@ -54,7 +54,7 @@ export class VarianceRules {
     return 1 + this.rng.range(-this.settings.stepCutoff, this.settings.stepCutoff)
   }
 
-  /** Ornament decision for arp (+12 on every 4th step when true). */
+  /** Ornament decision for arp (+12 on every 4th step when enabled). */
   arpOrnament(stepIndex: number, enabled: boolean): number {
     if (!enabled) return 0
     return stepIndex % 4 === 3 ? 12 : 0
