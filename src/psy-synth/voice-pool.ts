@@ -187,7 +187,7 @@ export class SynthVoicePool {
       if (!rec || !rec.voice.active) continue
       if (sameRoleOnly && rec.role !== role) continue
       const age = rec.voice.ageSec
-      if (rec.voice['releaseScheduledAt'] !== null) {
+      if (rec.voice.isReleasing) {
         if (age > inReleaseAge) {
           inReleaseAge = age
           inReleaseIdx = i
