@@ -283,6 +283,11 @@ export class SynthVoice {
     }
   }
 
+  /** True when a release envelope has been scheduled (tail only). */
+  get isReleasing(): boolean {
+    return this.releaseScheduledAt !== null
+  }
+
   get ageSec(): number {
     return this.host.currentTime - this.startedAt
   }
