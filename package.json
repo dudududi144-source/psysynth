@@ -1,0 +1,27 @@
+{
+  "name": "psysynth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PSY Synth Device - canonical subtractive-synth realization device (PsyDevice HOW layer). No samples, pure synthesis, MIDI-capable.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "bundle": "bun run scripts/build-bundle.ts",
+    "test": "bun test tests/",
+    "lint": "eslint src tests scripts",
+    "secret-scan": "bun run scripts/secret-scan.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "eslint": "^9.0.0"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
