@@ -2,7 +2,7 @@
 // Source: psy-audit/psy-foundation/packages/device-sdk/src/device.ts (lines 1-13)
 // SHIM_VERSION: pinned to psy-foundation commit 4ae95d3 (2026-08-13).
 //
-// A sync test (tests/psy-synth/shim-sync.test.ts) verifies this file stays
+// A sync test (tests/psy-sampler/shim-sync.test.ts) verifies this file stays
 // byte-equivalent to the canonical source. If the canonical contract evolves,
 // the test fails and the shim must be re-synced.
 //
