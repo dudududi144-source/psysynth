@@ -271,16 +271,16 @@ export class SynthDevice implements PsyDevice {
         return
       }
       voice.reconnectDry(roleBus)
-      const effectiveResPatch = resScale === 1 ? patch : withRes(patch, patch.filter.res * resScale)
       voice.trigger({
         note,
         velocity,
         at: action.at,
-        patch: effectiveResPatch,
+        patch,
         glideFromHz: notes.indexOf(note) === 0 ? glideFromHz : null,
         detuneDriftCents: detuneDrift,
         cutoffMult: cutoffMult * stepMult,
         cutoffBias: macro.cutoffBias,
+        resMult: resScale,
         energyCutoffHz,
         autoReleaseAt,
         delaySendLevel: delayLevel,
@@ -309,12 +309,4 @@ function clamp01(x: number): number {
 
 function midiFreqOf(note: number): number {
   return 440 * Math.pow(2, (note - 69) / 12)
-}
-
-/** Return a shallow patch copy with adjusted resonance (no mutation of library data). */
-function withRes(patch: import('./types').SynthPatch, res: number): import('./types').SynthPatch {
-  return {
-    ...patch,
-    filter: { ...patch.filter, res: Math.max(0, Math.min(0.95, res)) },
-  }
 }
