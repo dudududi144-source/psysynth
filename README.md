@@ -134,4 +134,4 @@ tests/psy-synth/           contract / shim-sync / unit / stress / render-proof
 
 ---
 
-Status: ARCHITECTURE PHASE - no runtime code yet. Next phase: implementation plan execution.
+Status: PHASES 0-5 IMPLEMENTED - full device core (voice/pool/router/patches/MIDI), 20-patch psytrance bank, 8 test files, demo host. Remaining: render-proof CI in browser + PolyBLEP/sync AudioWorklet polish (Phase 6 gates).
