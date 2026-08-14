@@ -1,13 +1,17 @@
 // secret-scan - fails loudly if credentials appear anywhere in the repo.
 // Usage: bun run scripts/secret-scan.ts
-// Checks ONLY for patterns (never prints the patterns' matches in full).
+// Pattern prefixes are assembled at runtime so this file never matches itself.
 
 import { Glob } from 'bun'
 
+const GH = 'github' + '_pat_'
+const CF = 'cf' + 'ut_'
+const SB = 's' + 'bp_'
+
 const PATTERNS: Array<{ name: string; re: RegExp }> = [
-  { name: 'github-pat', re: /github_pat_[A-Za-z0-9_]{20,}/ },
-  { name: 'cloudflare-user-token', re: /cfut_[A-Za-z0-9]{20,}/ },
-  { name: 'supabase-key', re: /sbp_[a-f0-9]{20,}/ },
+  { name: 'github-pat', re: new RegExp(GH + '[A-Za-z0-9_]{20,}') },
+  { name: 'cloudflare-user-token', re: new RegExp(CF + '[A-Za-z0-9]{20,}') },
+  { name: 'supabase-key', re: new RegExp(SB + '[a-f0-9]{20,}') },
   { name: 'jwt-like', re: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/ },
   { name: 'aws-access-key', re: /AKIA[0-9A-Z]{16}/ },
   { name: 'private-key-block', re: /-----BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY-----/ },
