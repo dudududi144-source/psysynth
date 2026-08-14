@@ -3,7 +3,7 @@
 // The v1 TransportSnapshot is NOT wired to DeviceHost yet (GAP-S5 in audit).
 //
 // SHIM_VERSION: pinned to psy-foundation commit 4ae95d3 (2026-08-13).
-// A sync test (tests/psy-synth/shim-sync.test.ts) verifies the shim stays
+// A sync test (tests/psy-sampler/shim-sync.test.ts) verifies the shim stays
 // byte-equivalent to the canonical source. If the canonical contract evolves,
 // the test fails and the shim must be re-synced.
 //
@@ -54,5 +54,5 @@ export interface TransportClockOptions {
 }
 
 // NOTE: DemoTransport has been MOVED to src/lib/demo-transport.ts.
-// It is NOT part of the canonical foundation and does not belong in this shim.
+// It is NOT part of the canonical foundation and does NOT belong in this shim.
 // The shim is now PURELY verbatim canonical contracts.
