@@ -62,6 +62,14 @@ Acceptance:
 
 ## Phase 6 - Proof Suite (the psytrance-grade gate)
 
+STATUS: HEADLESS PROOF SUITE IMPLEMENTED (this repo).
+- tests/psy-synth/stress.test.ts        - 5-min 145 BPM bass: zero node churn (GC-dropout proxy), zero bass steals, zero drops; tight-budget arp steal determinism.
+- tests/psy-synth/render-proof.test.ts  - bit-identical AudioParam scheduling fingerprint across runs (seed), via stub render log.
+- tests/psy-synth/style-acceptance.test.ts - manifest integrity, 7-role coverage, sidechain contract, 6 subgenre banks, per-role behavior.
+- src/psy-synth/render.ts               - OfflineAudioContext renderer + peak/RMS for the browser-CI real-sample counterpart.
+
+Browser CI run (real samples) + PolyBLEP/sync AudioWorklet remain as polish; the headless gates below run on every commit without audio hardware.
+
 Tests: stress.test.ts, render-proof.test.ts, style-acceptance.test.ts (automated parts of ARCHITECTURE-STYLE.md section 7).
 
 Acceptance (all from STYLE doc section 7 that are automatable):
