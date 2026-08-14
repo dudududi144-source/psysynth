@@ -108,7 +108,7 @@ export class SynthVoice {
   private readonly preDriveGain: GainNode
   private readonly f1: BiquadFilterNode
   private readonly f2: BiquadFilterNode
-  private const fSat: WaveShaperNode
+  private readonly fSat: WaveShaperNode
   private readonly vca: GainNode
 
   active = false
