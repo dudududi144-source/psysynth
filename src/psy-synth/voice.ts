@@ -45,6 +45,8 @@ export interface VoiceTriggerParams {
   cutoffMult: number
   /** style macro cutoff bias multiplier */
   cutoffBias: number
+  /** resonance multiplier (macro/CC); applied inside voice, zero allocation */
+  resMult: number
   /** extra cutoff opening from energy macro (Hz, already scaled) */
   energyCutoffHz: number
   /** when set, auto-release scheduled at this time (duration honored) */
@@ -243,7 +245,7 @@ export class SynthVoice {
     const f = patch.filter
     this.f1.type = f.type === 'bp' ? 'bandpass' : 'lowpass'
     this.f2.type = this.f1.type
-    const q = clamp(f.res, 0, 0.95) * 20 // guarded Q mapping
+    const q = clamp(f.res * p.resMult, 0, 0.95) * 20 // guarded Q mapping
     this.f1.Q.setValueAtTime(q, t)
     this.f2.Q.setValueAtTime(Math.max(0.5, q * 0.5), t)
 
