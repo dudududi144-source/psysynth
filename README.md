@@ -134,4 +134,4 @@ tests/psy-synth/           contract / shim-sync / unit / stress / render-proof
 
 ---
 
-Status: PHASES 0-5 IMPLEMENTED - full device core (voice/pool/router/patches/MIDI), 20-patch psytrance bank, 8 test files, demo host. Remaining: render-proof CI in browser + PolyBLEP/sync AudioWorklet polish (Phase 6 gates).
+Status: PHASES 0-6 HEADLESS COMPLETE - full device core, 20-patch psytrance bank, 12 test files incl. proof suite (stress / render-proof / style-acceptance), offline renderer (src/psy-synth/render.ts), demo host. Remaining: browser-CI real-sample render run + PolyBLEP/sync AudioWorklet polish.
