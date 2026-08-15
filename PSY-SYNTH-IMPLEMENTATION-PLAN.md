@@ -78,6 +78,16 @@ Acceptance (all from STYLE doc section 7 that are automatable):
 - OfflineAudioContext render of the full style suite; peak/RMS/spectrum assertions saved as artifacts.
 - All Phase 0-5 tests still green.
 
+## Phase 7 - PolyBLEP / hard-sync / PWM (the v2 oscillator polish)
+
+STATUS: PURE DSP CORE + WORKLET SOURCE IMPLEMENTED (this repo).
+- src/psy-synth/dsp/polyblep.ts        - pure, headless-testable PolyBLEP math (saw/pulse/PWM, hard-sync reset, Goertzel alias analysis).
+- tests/psy-synth/polyblep.test.ts     - alias-reduction proof (Goertzel at folded freq), PWM mean, hard-sync, bounds.
+- src/psy-synth/worklet/polyblep-worklet.ts - self-contained AudioWorklet processor (hard-sync + PWM) + createPolyBlepNode() registration helper.
+
+Done (headless): PolyBLEP residual + generators, alias proxy vs naive, PWM duty mean, hard-sync phase reset, oscillator phase advance.
+Remaining (browser CI): register the worklet, route one voice through the AudioWorkletNode, render-proof with real samples, then enable a per-patch `oscEngine: 'polyblep'` opt-in on the voice path (default stays PeriodicWave so all existing tests remain green).
+
 ## Definition of Done (repo-level)
 
 - All tests green: bun test (unit + contract + stress + render-proof).
