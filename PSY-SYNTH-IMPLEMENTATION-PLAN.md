@@ -86,7 +86,8 @@ STATUS: PURE DSP CORE + WORKLET SOURCE IMPLEMENTED (this repo).
 - src/psy-synth/worklet/polyblep-worklet.ts - self-contained AudioWorklet processor (hard-sync + PWM) + createPolyBlepNode() registration helper.
 
 Done (headless): PolyBLEP residual + generators, alias proxy vs naive, PWM duty mean, hard-sync phase reset, oscillator phase advance.
-Remaining (browser CI): register the worklet, route one voice through the AudioWorkletNode, render-proof with real samples, then enable a per-patch `oscEngine: 'polyblep'` opt-in on the voice path (default stays PeriodicWave so all existing tests remain green).
+Done (headless, this pass): engine router - OscEngine type + optional SynthPatch.oscEngine (schema-validated), src/psy-synth/dsp/engine-router.ts (patchNeedsPolyBlep / selectOscEngine / engineCensus), tests/psy-synth/engine-router.test.ts (census over the shipped bank flags exactly lead-hitech-sync + pluck-forest as polyblep). Default stays 'periodic' so the audio hot path and all existing tests are untouched.
+Remaining (browser CI): register the worklet, route one voice through the AudioWorkletNode, render-proof with real samples, then consult engine-router at voice trigger time to honor a patch's resolved engine.
 
 ## Definition of Done (repo-level)
 
