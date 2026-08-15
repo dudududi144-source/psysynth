@@ -11,13 +11,16 @@
     "bundle": "bun run scripts/build-bundle.ts",
     "test": "bun test tests/",
     "lint": "eslint src tests scripts",
-    "secret-scan": "bun run scripts/secret-scan.ts"
+    "secret-scan": "bun run scripts/secret-scan.ts",
+    "build:harness": "bun run scripts/build-harness.ts",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "eslint": "^9.0.0"
+    "eslint": "^9.0.0",
+    "@playwright/test": "^1.62.0"
   },
   "dependencies": {
     "next": "^14.2.0",
