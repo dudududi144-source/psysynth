@@ -59,7 +59,10 @@ export class SynthVoicePool {
       const count = this.roleCounts[role] ?? 0
       if (count >= budget) {
         const victimIdx = this.pickSteal(role, now, true)
-        if (victimIdx >= 0) return this.takeRecord(victimIdx, role)
+        if (victimIdx >= 0) {
+          this.counters.voicesStolen += 1
+          return this.takeRecord(victimIdx, role)
+        }
       }
     }
     const freeIdx = this.free.pop()
