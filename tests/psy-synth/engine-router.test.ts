@@ -71,7 +71,7 @@ describe('oscEngine schema validation', () => {
     expect(validatePatch(basePatch(), 0).ok).toBe(true)
   })
   it('rejects an invalid oscEngine value', () => {
-    const bad = { ...basePatch(), oscEngine: 'wavetable' }
+    const bad = { ...basePatch(), oscEngine: 'wavetable' } as unknown as SynthPatch
     const v = validatePatch(bad, 0)
     expect(v.ok).toBe(false)
     expect(v.errors.join(' ')).toContain('.oscEngine')
