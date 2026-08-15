@@ -11,6 +11,10 @@ export function isSynthRole(x: string): x is SynthRole {
 
 export type WaveKind = 'saw' | 'square' | 'triangle' | 'sine'
 
+/** Oscillator engine. 'periodic' = fixed PeriodicWave (static band-limited);
+ * 'polyblep' = per-sample PolyBLEP (dynamic: hard-sync / PWM). */
+export type OscEngine = 'periodic' | 'polyblep'
+
 export interface OscSpec {
   wave: WaveKind
   /** semitones relative to note (e.g. -12 for sub/weight layers) */
@@ -80,6 +84,8 @@ export interface SynthPatch {
   chordIntervals?: number[]
   /** seeded octave ornament for arp (e.g. +12 every 4th step) */
   arpOrnament?: boolean
+  /** Oscillator engine; omitted = auto (periodic unless the patch needs polyblep) */
+  oscEngine?: OscEngine
   /** per-step seeded cutoff variance +-8% (arp role) */
   stepVariance?: boolean
 }
