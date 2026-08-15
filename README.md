@@ -137,4 +137,4 @@ tests/helpers/             headless audio stub (render-fingerprint recorder)
 
 ---
 
-Status: PHASES 0-6 HEADLESS COMPLETE + POLYBLEP DSP CORE - full device core, 20-patch psytrance bank, 13 test files incl. proof suite (stress / render-proof / style-acceptance / polyblep), offline renderer, pure PolyBLEP DSP (src/psy-synth/dsp/) + AudioWorklet processor with hard-sync/PWM (src/psy-synth/worklet/), demo host. Remaining: browser-CI real-sample render run + routing a voice through the worklet node.
+Status: PHASES 0-6 HEADLESS COMPLETE + POLYBLEP DSP CORE - full device core, 20-patch psytrance bank, 13 test files incl. proof suite (stress / render-proof / style-acceptance / polyblep), offline renderer, pure PolyBLEP DSP (src/psy-synth/dsp/) + AudioWorklet processor with hard-sync/PWM (src/psy-synth/worklet/), demo host. OscEngine opt-in is schema-validated and headless-routed (src/psy-synth/dsp/engine-router.ts). Remaining: browser-CI real-sample render run + wiring engine-router into the voice audio path.
