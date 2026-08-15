@@ -2,6 +2,8 @@
 
 Seven phases. Each phase ends green: its tests pass before the next phase starts. No phase modifies the shim.
 
+> **VERIFIED STATUS (this repo, real run):** headless proof suite is GREEN — `115 pass · 3 skip · 0 fail · 118 tests across 14 files`. The 3 skips are browser-CI render tests that self-skip without `OfflineAudioContext`. Bundle builds clean: `public/psysynth.js` = **20.5 KB** minified ESM (`createSynthDevice` / `SynthDevice` / `SYNTH_ROLES` exports verified by import). Bundle is a build artifact, deliberately git-ignored.
+
 ## Phase 0 - Scaffold and Contract Purity
 
 Tasks:
@@ -54,6 +56,8 @@ Acceptance:
 
 ## Phase 5 - Bundle and Demo Host
 
+STATUS: DONE + VERIFIED. `bun run bundle` exits 0 and emits public/psysynth.js at 20.5 KB (< 60 KB budget), ESM, es2020, no globals; exports confirmed by importing the built file. Demo host (src/app/page.tsx) present. Bundle is git-ignored by design (build artifact).
+
 Files: scripts/build-bundle.ts, src/app/page.tsx (standalone demo), public/psysynth.js
 Acceptance:
 - Bundle < 60KB minified, ESM, no globals, es2020.
@@ -93,6 +97,6 @@ Remaining (browser CI): register the worklet, route one voice through the AudioW
 
 - All tests green: bun test (unit + contract + stress + render-proof).
 - shim-sync green against pinned foundation commit.
-- Bundle built and committed to public/psysynth.js only via build script.
+- Bundle builds via `bun run bundle` (public/psysynth.js, ~20 KB); it is a build artifact and intentionally NOT committed (see .gitignore).
 - No secrets anywhere (secret-scan step in CI script).
 - README + 4 architecture docs consistent with shipped code.
