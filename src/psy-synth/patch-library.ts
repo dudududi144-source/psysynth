@@ -61,6 +61,10 @@ export function validatePatch(p: unknown, idx: number): ValidationResult {
     errors.push(at + '.sends (delay/reverb 0..1)')
   }
   if (typeof patch.driveDb !== 'number' || patch.driveDb < 0 || patch.driveDb > 12) errors.push(at + '.driveDb (0..12)')
+  const oe = patch.oscEngine
+  if (oe !== undefined && oe !== 'periodic' && oe !== 'polyblep') {
+    errors.push(at + '.oscEngine (periodic|polyblep)')
+  }
   return { ok: errors.length === 0, errors }
 }
 
