@@ -106,15 +106,18 @@ await bundle.load()
 
 See INTEGRATION-GUIDE.md for the full bridge contract, NoteEvent mapping, and MIDI wiring.
 
-## Repository Map (planned)
+## Repository Map
 
 ```
 src/psy-foundation-shim/   verbatim contracts (pinned, sync-tested)
 src/psy-synth/             device core (device/voice/pool/router/patches/midi)
+src/psy-synth/dsp/         pure PolyBLEP DSP (headless-testable math core)
+src/psy-synth/worklet/     PolyBLEP AudioWorklet processor (hard-sync + PWM)
+src/psy-synth/render.ts    offline renderer (browser-CI real-sample proof)
 src/app/                   Next.js standalone demo host
-public/psysynth.js         ESM bundle (build artifact)
 public/patches/            patch manifest + presets (with provenance)
-tests/psy-synth/           contract / shim-sync / unit / stress / render-proof
+tests/psy-synth/           contract / shim-sync / unit / stress / render-proof / polyblep
+tests/helpers/             headless audio stub (render-fingerprint recorder)
 ```
 
 ## Non-Goals (by design)
@@ -134,4 +137,4 @@ tests/psy-synth/           contract / shim-sync / unit / stress / render-proof
 
 ---
 
-Status: PHASES 0-6 HEADLESS COMPLETE - full device core, 20-patch psytrance bank, 12 test files incl. proof suite (stress / render-proof / style-acceptance), offline renderer (src/psy-synth/render.ts), demo host. Remaining: browser-CI real-sample render run + PolyBLEP/sync AudioWorklet polish.
+Status: PHASES 0-6 HEADLESS COMPLETE + POLYBLEP DSP CORE - full device core, 20-patch psytrance bank, 13 test files incl. proof suite (stress / render-proof / style-acceptance / polyblep), offline renderer, pure PolyBLEP DSP (src/psy-synth/dsp/) + AudioWorklet processor with hard-sync/PWM (src/psy-synth/worklet/), demo host. Remaining: browser-CI real-sample render run + routing a voice through the worklet node.
