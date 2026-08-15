@@ -45,7 +45,7 @@ describe('shim-sync (structural gate)', () => {
       .filter((l) => l.length > 0 && !l.startsWith('//'))
     for (const line of code) {
       const ok = line.startsWith('import') || line.startsWith('export') ||
-        line.startsWith('}') || line.startsWith(']') || /^[A-Za-z],?$/.test(line) ||
+        line.startsWith('}') || line.startsWith(']') || /^[A-Za-z_$][A-Za-z0-9_$]*,?$/.test(line) ||
         line.startsWith('type') || line.startsWith("'")
       expect(ok).toBe(true)
     }
