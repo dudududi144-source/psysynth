@@ -14,7 +14,8 @@
 // - Trigger work is AudioParam scheduling only: ZERO node creation and ZERO
 //   heap allocation in the hot path (voices are pre-created and reused).
 
-import type { SynthPatch, WaveKind } from './types'
+import type { OscEngine, SynthPatch, WaveKind } from './types'
+import { selectOscEngine } from './dsp/engine-router'
 
 export interface VoiceAudioHost {
   readonly currentTime: number
@@ -129,6 +130,8 @@ export class SynthVoice {
   private readonly dests: VoiceDestinations
 
   active = false
+  /** Resolved oscillator engine for the current trigger (engine-router decision). */
+  engine: OscEngine = 'periodic'
   /** release time used by note-off, captured at trigger (patch.amp.releaseMs) */
   releaseMs = 120
   private noteHeld = -1
@@ -206,6 +209,9 @@ export class SynthVoice {
   trigger(p: VoiceTriggerParams): void {
     const t = p.at
     const patch = p.patch
+    // Engine-router decision (Phase-7 opt-in). Rendering below stays on the
+    // PeriodicWave path; a worklet-capable host branches on this at trigger time.
+    this.engine = selectOscEngine(patch)
     const freq = midiToFreq(p.note)
     const vel = clamp(p.velocity, 0, 1)
 
