@@ -293,11 +293,13 @@ export class SynthVoice {
     this.lastFreqHz = freq
   }
 
-  /** Note-off (or auto-release) with the captured release envelope. */
-  release(at: number): void {
+  /** Note-off (or auto-release) with the captured release envelope.
+   * `releaseMsOverride` lets the pool force a fast release (mono retrigger /
+   * releaseAll) without mutating the patch-derived default. */
+  release(at: number, releaseMsOverride?: number): void {
     if (!this.active) return
     if (this.releaseScheduledAt !== null && this.releaseScheduledAt <= at) return
-    this.scheduleRelease(at, this.releaseMs)
+    this.scheduleRelease(at, releaseMsOverride ?? this.releaseMs)
   }
 
   private scheduleRelease(at: number, releaseMs: number): void {
