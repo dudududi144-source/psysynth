@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Headless proof suite. The browser-CI real-sample render (Phase 6/7 polish)
+# runs in a separate browser job once Playwright is wired; these gates are the
+# deterministic core that must be green on every commit, no audio hardware.
+
+jobs:
+  proof:
+    name: Headless proof suite (bun test + secret scan)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run proof suite (contract / shim-sync / unit / stress / render-proof / style / polyblep)
+        run: bun test tests/
+
+      - name: Secret scan (credentials must never land in the repo)
+        run: bun run secret-scan
