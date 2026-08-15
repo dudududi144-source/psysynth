@@ -11,8 +11,14 @@ next-env.d.ts
 # build artifacts
 public/psysynth.js
 public/psysynth.js.map
+public/render-harness.js
 dist/
 build/
+
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 # env and secrets - NEVER commit tokens or keys
 .env
