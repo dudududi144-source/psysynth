@@ -11,7 +11,7 @@ next-env.d.ts
 # build artifacts
 public/psysynth.js
 public/psysynth.js.map
-public/render-harness.js
+browser/render-harness.js
 dist/
 build/
 
