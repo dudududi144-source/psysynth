@@ -1,0 +1,5 @@
+# Test runner config for the psysynth proof suite.
+# Stress tests drive thousands of events; give each test ample headroom.
+
+[test]
+timeout = 60000
