@@ -64,6 +64,16 @@ Acceptance:
 - Demo page: keyboard UI, patch selector, MIDI panel, diagnostics strip, works from cold start in one click.
 - INTEGRATION-GUIDE.md verified against the demo wiring (guide matches reality).
 
+
+## Browser-CI render proof (wired, runs in GitHub Actions)
+
+STATUS: INFRASTRUCTURE COMPLETE + PUSHED. The real-sample render proof now has a full browser path:
+- browser/render-harness.ts + render-harness.html run renderOffline() in a REAL OfflineAudioContext and expose window.__RESULT.
+- scripts/build-harness.ts emits browser/render-harness.js (verified: builds clean, runRender registered, manifest inlined).
+- e2e/render.spec.ts (Playwright, chromium headless) asserts audible + bit-identical output.
+- ci.yml `browser` job: bun install -> playwright install chromium -> build:harness -> test:browser.
+Headless `bun test tests/` stays green (115/3/0); the browser spec is isolated in e2e/ so it never runs headless.
+
 ## Phase 6 - Proof Suite (the psytrance-grade gate)
 
 STATUS: HEADLESS PROOF SUITE IMPLEMENTED (this repo).
