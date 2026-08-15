@@ -70,13 +70,16 @@ describe('aliasing reduction (Goertzel at the folded frequency)', () => {
     expect(polySpur).toBeLessThan(naiveSpur * 0.5)
   })
 
-  it('polyblep saw preserves the fundamental', () => {
+  it('polyblep saw concentrates energy at the fundamental near Nyquist', () => {
+    // A band-limited saw at 0.4 has ONLY the fundamental below Nyquist, so
+    // nearly all of its energy must sit at the fundamental bin. Comparing to
+    // the naive fundamental is misleading near Nyquist (naive is inflated by
+    // aliasing); concentration is the correct, sign-error-catching invariant.
     const poly = renderOsc('saw', f, sr, n)
-    const naive = new Float32Array(n)
-    for (let i = 0; i < n; i++) naive[i] = naiveSaw((f / sr) * i)
-    const polyFund = goertzelPower(poly, f / sr)
-    const naiveFund = goertzelPower(naive, f / sr)
-    expect(polyFund).toBeGreaterThan(naiveFund * 0.5)
+    const total = totalEnergy(poly)
+    const fund = goertzelPower(poly, f / sr)
+    expect(total).toBeGreaterThan(0)
+    expect(fund / ((n / 2) * total)).toBeGreaterThan(0.9)
   })
 
   it('polyblep square reduces aliasing vs naive square', () => {
