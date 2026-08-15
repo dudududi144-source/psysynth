@@ -1,10 +1,11 @@
-// Build the browser render-harness bundle (public/render-harness.js).
-// IIFE so it self-registers window.runRender when loaded by render-harness.html.
+// Build the browser render-harness bundle into browser/render-harness.js so it sits
+// NEXT TO browser/render-harness.html (the page references ./render-harness.js,
+// and the Playwright spec loads the page over file://).
 import { build } from 'bun'
 
 const result = await build({
   entrypoints: ['./browser/render-harness.ts'],
-  outdir: './public',
+  outdir: './browser',
   naming: 'render-harness.js',
   target: 'browser',
   format: 'iife',
@@ -16,4 +17,4 @@ if (!result.success) {
   console.error('render-harness build failed:', result.logs)
   process.exit(1)
 }
-console.log('render-harness bundle built -> public/render-harness.js')
+console.log('render-harness bundle built -> browser/render-harness.js')
