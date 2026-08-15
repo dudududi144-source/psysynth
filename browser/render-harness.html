@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>psysynth render harness</title>
+<style>
+  body { background:#070312; color:#efe9fb; font-family:ui-monospace,monospace; padding:24px; }
+  h1 { font-size:16px; letter-spacing:2px; }
+  #result { white-space:pre-wrap; background:#0d0620; border:1px solid rgba(150,90,255,.28);
+            border-radius:8px; padding:16px; margin-top:16px; min-height:80px; }
+  .ok { color:#3dffa8; } .err { color:#ff4d6d; }
+</style>
+</head>
+<body>
+  <h1>PSYSYNTH RENDER HARNESS (browser-CI real-sample proof)</h1>
+  <div id="status">running&hellip;</div>
+  <pre id="result"></pre>
+  <script src="./render-harness.js"></script>
+  <script>
+    (function () {
+      var statusEl = document.getElementById('status')
+      var resultEl = document.getElementById('result')
+      if (typeof window.runRender !== 'function') {
+        statusEl.textContent = 'ERROR: runRender not registered'
+        window.__RESULT = { ok:false, error:'runRender not registered' }
+        return
+      }
+      window.runRender().then(function (r) {
+        window.__RESULT = r
+        resultEl.textContent = JSON.stringify(r, null, 2)
+        statusEl.textContent = r.ok ? 'PASS' : 'FAIL'
+        statusEl.className = r.ok ? 'ok' : 'err'
+      }).catch(function (e) {
+        window.__RESULT = { ok:false, error:String(e) }
+        resultEl.textContent = String(e)
+        statusEl.textContent = 'ERROR'
+        statusEl.className = 'err'
+      })
+    })()
+  </script>
+</body>
+</html>
