@@ -134,3 +134,110 @@ export interface SynthDiagnostics {
   staleDrop: number
   patchLoadErrors: number
 }
+
+
+// ============================================================
+// PSYSYNTH PRO / KAI Phase 1 - extended synthesis types.
+// All additions are OPTIONAL / backward compatible. Existing patches
+// (Subtractor-style) keep working unchanged.
+// ============================================================
+
+/** Extended oscillator waveforms beyond the basic 4 (Thor-like). */
+export type OscWaveExt = WaveKind | 'fm' | 'phase' | 'wavetable' | 'noise' | 'sampleHold'
+
+/** Filter types beyond lp/bp (Thor-like multi-mode). */
+export type FilterTypeExt = 'lp' | 'hp' | 'bp' | 'notch' | 'comb' | 'formant' | 'svf'
+
+/** A modulation source in the mod matrix. */
+export type ModSource =
+  | 'lfo1' | 'lfo2' | 'lfo3'
+  | 'env1' | 'env2' | 'env3' | 'env4'
+  | 'velocity' | 'key' | 'modWheel' | 'aftertouch' | 'sampleHold' | 'stepSeq' | 'random'
+
+/** A modulation destination in the mod matrix. */
+export type ModDest =
+  | 'oscPitch' | 'oscDetune' | 'oscGain'
+  | 'filterCutoff' | 'filterRes'
+  | 'pan' | 'vca'
+  | 'lfoRate' | 'pulseWidth' | 'fmAmount' | 'wavetablePos'
+
+/** One mod-matrix entry: source -> destination, signed amount. */
+export interface ModMatrixEntry {
+  source: ModSource
+  destination: ModDest
+  /** signed; negative inverts the modulation */
+  amount: number
+}
+
+/** LFO waveform choices. */
+export type LfoWave = 'sine' | 'triangle' | 'square' | 'saw' | 'random'
+
+/** One LFO. Up to 3 per patch (lfo1..lfo3). */
+export interface LfoSpec {
+  /** Hz, or a sync rate when sync is set */
+  rateHz: number
+  wave: LfoWave
+  /** sync to transport instead of free-running */
+  sync?: 'off' | '1-4' | '1-8' | '1-16'
+  /** 0..1 fade-in over time (seconds) */
+  fadeSec?: number
+  /** optional fixed phase offset 0..1 */
+  phase?: number
+}
+
+/** An extra modulation envelope (ADSR), usable as a mod source. */
+export interface ModEnvelopeSpec {
+  attackMs: number
+  decayMs: number
+  sustain: number
+  releaseMs: number
+  /** invert the envelope output */
+  invert?: boolean
+}
+
+/** Step sequencer as a modulation source. */
+export interface StepSeqSpec {
+  /** values -1..1 per step */
+  steps: number[]
+  /** step rate relative to transport */
+  rate: '1-4' | '1-8' | '1-16' | '1-32'
+  /** loop or one-shot */
+  loop?: boolean
+}
+
+/** Extended oscillator spec (Phase 1). Backward compatible with OscSpec. */
+export interface OscSpecExt extends OscSpec {
+  /** extended waveform; when set, overrides `wave` semantics */
+  waveExt?: OscWaveExt
+  /** FM: modulator ratio relative to carrier (e.g. 2.0) */
+  fmRatio?: number
+  /** FM: modulation amount 0..1 */
+  fmAmount?: number
+  /** wavetable: list of table names to scan between */
+  wavetables?: string[]
+  /** wavetable: default scan position 0..1 */
+  wavetablePos?: number
+}
+
+/** Extended filter spec (Phase 1). Backward compatible with FilterSpec. */
+export interface FilterSpecExt extends FilterSpec {
+  typeExt?: FilterTypeExt
+  /** comb: delay time in ms */
+  combMs?: number
+  /** comb: feedback 0..0.95 */
+  combFb?: number
+  /** formant: which vowel-ish formant set */
+  formant?: 'a' | 'e' | 'i' | 'o' | 'u'
+}
+
+/** Extended patch (Phase 1). Backward compatible with SynthPatch. */
+export interface SynthPatchExt extends SynthPatch {
+  /** modulation matrix; empty/omitted = classic (no matrix) */
+  modMatrix?: ModMatrixEntry[]
+  /** up to 3 LFOs, addressed as lfo1..lfo3 */
+  lfos?: LfoSpec[]
+  /** extra mod envelopes, addressed as env2..env4 (env1 = amp) */
+  modEnvelopes?: ModEnvelopeSpec[]
+  /** step sequencer as a mod source */
+  stepSeq?: StepSeqSpec
+}
