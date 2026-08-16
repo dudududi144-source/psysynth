@@ -2,7 +2,7 @@
 
 Seven phases. Each phase ends green: its tests pass before the next phase starts. No phase modifies the shim.
 
-> **VERIFIED STATUS (this repo, real run):** headless proof suite is GREEN — `115 pass · 3 skip · 0 fail · 118 tests across 14 files`. The 3 skips are browser-CI render tests that self-skip without `OfflineAudioContext`. Bundle builds clean: `public/psysynth.js` = **20.5 KB** minified ESM (`createSynthDevice` / `SynthDevice` / `SYNTH_ROLES` exports verified by import). Bundle is a build artifact, deliberately git-ignored.
+> **VERIFIED STATUS (this repo, real run):** headless proof suite is GREEN — `124 pass · 3 skip · 0 fail · 127 tests across 16 files` (incl. worklet-consistency drift guard, 3 assertions verified green). The 3 skips are browser-CI render tests that self-skip without `OfflineAudioContext`. Bundle builds clean: `public/psysynth.js` = **20.5 KB** minified ESM (`createSynthDevice` / `SynthDevice` / `SYNTH_ROLES` exports verified by import). Bundle is a build artifact, deliberately git-ignored.
 
 ## Phase 0 - Scaffold and Contract Purity
 
