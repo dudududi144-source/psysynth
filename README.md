@@ -3,7 +3,7 @@
 > The canonical **subtractive-synth realization device** of the PSY family. A pure HOW layer: it consumes `MusicalEvent`s from a `DeviceHost` and renders them as real-time synthesized audio. Sibling of `psy-sampler` — same contract, opposite sound source: **no samples, pure synthesis**. First family member with `capabilities.midi = true`.
 
 [![ci](https://github.com/dudududi144-source/psysynth/actions/workflows/ci.yml/badge.svg)](https://github.com/dudududi144-source/psysynth/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-115_pass_%C2%B7_0_fail-brightgreen)
+![tests](https://img.shields.io/badge/tests-124_pass_%C2%B7_0_fail-brightgreen)
 ![runtime](https://img.shields.io/badge/runtime-bun-blue)
 ![lang](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -129,7 +129,7 @@ See [`INTEGRATION-GUIDE.md`](./INTEGRATION-GUIDE.md) for the full bridge contrac
 The proof suite runs fully headless (no audio hardware) via `bun test`:
 
 ```
-115 pass · 3 skip · 0 fail · 118 tests across 14 files · ~150ms
+124 pass · 3 skip · 0 fail · 127 tests across 16 files · ~170ms
 ```
 
 | Suite | Proves |
