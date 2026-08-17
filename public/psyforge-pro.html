@@ -507,7 +507,19 @@ const PRESETS={
 ,"Glitch Wavetable Lead":{wave:0,eng:4,wt:.9,cut:3200,res:.5,fe:.6,dec:.15,rel:.08,pmp:.2,sub:.3,gld:.02,seq:false,arp:false,bpm:160,dly:.4,rvb:.3}
 ,"Cyber Pad":{wave:0,eng:4,wt:.4,cut:2200,res:.3,fe:.4,dec:.6,rel:.7,pmp:.1,sub:.3,gld:0,seq:false,arp:false,bpm:125,dly:.35,rvb:.5}
 ,"Talking Acid":{wave:0,eng:5,wt:.5,cut:2600,res:.5,fe:.6,dec:.15,rel:.08,pmp:.2,sub:.3,gld:.02,seq:false,arp:false,bpm:142,dly:.3,rvb:.25}
-,"Vocal Trance Lead":{wave:0,eng:5,wt:.7,cut:3000,res:.4,fe:.5,dec:.2,rel:.15,pmp:.15,sub:.2,gld:.03,seq:false,arp:false,bpm:140,dly:.4,rvb:.4}};
+,"Vocal Trance Lead":{wave:0,eng:5,wt:.7,cut:3000,res:.4,fe:.5,dec:.2,rel:.15,pmp:.15,sub:.2,gld:.03,seq:false,arp:false,bpm:140,dly:.4,rvb:.4}
+,"FM Crystal Bell":{wave:0,eng:1,fm:.85,cut:6000,res:.15,fe:.2,dec:.5,rel:.4,pmp:.08,sub:0,gld:0,seq:false,arp:false,bpm:135,dly:.45,rvb:.5}
+,"FM E-Piano":{wave:0,eng:1,fm:.5,cut:3500,res:.2,fe:.3,dec:.35,rel:.3,pmp:.1,sub:.1,gld:0,seq:false,arp:false,bpm:130,dly:.3,rvb:.35}
+,"FM Metallic Pluck":{wave:0,eng:1,fm:1,cut:5000,res:.2,fe:.25,dec:.15,rel:.1,pmp:.12,sub:0,gld:0,seq:false,arp:false,bpm:145,dly:.35,rvb:.3}
+,"FM Brass Stab":{wave:0,eng:1,fm:.6,cut:2800,res:.3,fe:.4,dec:.2,rel:.15,pmp:.15,sub:.2,gld:0,seq:false,arp:false,bpm:140,dly:.25,rvb:.3}
+,"Deep Organ":{wave:2,eng:2,cut:1400,res:.25,fe:.3,dec:.3,rel:.25,pmp:.12,sub:.3,gld:0,seq:false,arp:false,bpm:138,dly:.2,rvb:.4}
+,"Psy Organ Stab":{wave:2,eng:2,cut:2400,res:.3,fe:.35,dec:.18,rel:.12,pmp:.15,sub:.2,gld:0,seq:false,arp:false,bpm:145,dly:.25,rvb:.3}
+,"Vinyl Noise FX":{wave:0,eng:3,cut:2500,res:.4,fe:.5,dec:.8,rel:.6,pmp:.1,sub:0,gld:0,seq:false,arp:false,bpm:130,dly:.35,rvb:.55}
+,"Snare Clap":{wave:0,eng:3,cut:3800,res:.5,fe:.5,dec:.07,rel:.05,pmp:.2,sub:0,gld:0,seq:false,arp:false,bpm:145,dly:.2,rvb:.25}
+,"Wind Riser":{wave:0,eng:3,cut:1800,res:.5,fe:.6,dec:1.2,rel:.9,pmp:.1,sub:0,gld:0,seq:false,arp:false,bpm:135,dly:.3,rvb:.55}
+,"Digital Dreams Pad":{wave:0,eng:4,wt:.8,cut:2600,res:.3,fe:.4,dec:.6,rel:.6,pmp:.1,sub:.25,gld:0,seq:false,arp:false,bpm:132,dly:.35,rvb:.55}
+,"Neon Lead":{wave:0,eng:4,wt:.3,cut:3400,res:.45,fe:.5,dec:.2,rel:.15,pmp:.15,sub:.2,gld:0,seq:false,arp:false,bpm:148,dly:.35,rvb:.3}
+,"Alien Voice":{wave:0,eng:5,wt:.7,cut:3000,res:.4,fe:.5,dec:.25,rel:.2,pmp:.12,sub:.15,gld:0,seq:false,arp:false,bpm:140,dly:.35,rvb:.4}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
 const ENGMAP={"Psy-Organ":2,"Shamanic Stab":1,"Forest Pluck":3,"Hi-Tech Arp":4,"Twilight Arp":4,"Euphoria Lead":4,"Zenith Pad":4,"Euphoria Lead":5};
 function applySeqPattern(pat,acc){ for(let i=0;i<16;i++){seqPat[i]=pat[i]?1:0;seqAcc[i]=(acc&&acc[i])?1:0;} document.querySelectorAll(".st").forEach((e,i)=>{e.classList.toggle("acc",!!seqAcc[i]);e.style.height=(seqPat[i]?60:25)+"%";}); }
