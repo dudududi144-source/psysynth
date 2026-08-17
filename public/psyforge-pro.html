@@ -58,7 +58,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
  <div class="sp"></div>
  <button class="btn" id="arpBtn">ARP</button>
  <button class="btn" id="seqBtn">SEQ</button>
- <button class="btn" id="test">TEST</button><button class="btn" id="save">SAVE</button><button class="btn pw" id="pw">POWER</button>
+ <button class="btn" id="wk">WK</button><button class="btn" id="test">TEST</button><button class="btn" id="save">SAVE</button><button class="btn pw" id="pw">POWER</button>
 </div>
 
 <div class="g g3">
@@ -136,11 +136,11 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
 const $=i=>document.getElementById(i);
 const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:true,
  atk:.001,dec:.16,sus:.55,rel:.06,arp:false,seq:false,amode:0,arate:1,aoct:2,agate:.55,
- lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0};
+ lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0,wk:false};
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[4,8,16,32];
-let ctx=null,master,pumpG,drv,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false;
+let ctx=null,master,pumpG,drv,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false,wkNode=null,wkReady=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
 function effPoly(){ const load=1+(P.uni-1)+(P.fm>0.02?1:0)+(P.ring>0.02?1:0); return Math.max(3,Math.round(POLY/Math.sqrt(load))); }
 let step=0, nextT=0, schedTimer=null, lastClk=0;
@@ -155,6 +155,36 @@ function blWave(type){ if(waveCache[type])return waveCache[type];
   else if(type==="square")imag[i]=(i%2===1)?1/i:0;
   else if(type==="triangle")imag[i]=(i%2===1)?(((i-1)/2)%2===0?1:-1)/(i*i):0; }
  const w=ctx.createPeriodicWave(real,imag); waveCache[type]=w; return w; }
+const WK_SRC=`
+registerProcessor("psy-engine",class extends AudioWorkletProcessor{
+constructor(){super();this.V=[];for(let i=0;i<16;i++)this.V.push({on:false,rel:false,p:0,f:440,tf:440,w:0,vel:0,stage:0,tt:0,env:0,fs1:0,fs2:0,note:0});
+this.P={cut:2000,res:.5,atk:.001,dec:.15,sus:.6,rel:.08,glide:.04};
+this.port.onmessage=e=>{const m=e.data;
+if(m.t==="par")Object.assign(this.P,m.p);
+if(m.t==="on"){const v=this.alloc();v.on=true;v.rel=false;v.note=m.note;v.tf=440*Math.pow(2,(m.note-69)/12);if(this.P.glide<=0)v.f=v.tf;v.p=0;v.vel=m.vel;v.stage=0;v.tt=0;v.env=0;v.fs1=0;v.fs2=0;v.w=m.wave||0;}
+if(m.t==="off"){for(const v of this.V)if(v.on&&v.note===m.note&&!v.rel){v.rel=true;v.stage=2;v.tt=0;}}};}
+alloc(){for(const v of this.V)if(!v.on)return v;let o=this.V[0];for(const v of this.V)if(v.tt<o.tt)o=v;return o;}
+blep(t,dt){if(dt<=0)return 0;if(t<dt){const x=t/dt;return x+x-x*x-1;}if(t>1-dt){const x=(t-1)/dt;return x*x+x+x+1;}return 0;}
+process(inp,out){const o=out[0];const sr=sampleRate;const P=this.P;
+for(let n=0;n<o.length;n++){let s=0;
+for(const v of this.V){if(!v.on)continue;
+v.tt+=1/sr;
+v.f+=(v.tf-v.f)*Math.min(1,30/(sr*Math.max(.001,P.glide)));
+const dt=v.f/sr;v.p+=dt;if(v.p>=1)v.p-=1;
+let x;
+if(v.w===0)x=2*v.p-1-this.blep(v.p,dt);
+else if(v.w===1)x=(v.p<.5?1:-1)+this.blep(v.p,dt)-this.blep((v.p+.5)%1,dt);
+else x=Math.sin(2*Math.PI*v.p);
+const w0=Math.min(.85,2*Math.PI*(P.cut*(1+(v.note-48)/96))/sr);
+const q=Math.min(3,P.res*3);
+v.fs1+=w0*(x+q*v.fs2-v.fs1);v.fs2+=w0*(v.fs1-v.fs2);
+if(v.stage===0){v.env+=(1-v.env)*Math.min(1,4.6/(sr*Math.max(.0005,P.atk)));if(v.env>.99){v.env=1;v.stage=1;}}
+else if(v.stage===1){v.env+=(P.sus-v.env)*Math.min(1,4.6/(sr*Math.max(.01,P.dec)));}
+else{v.env+=(0-v.env)*Math.min(1,4.6/(sr*Math.max(.01,P.rel)));if(v.env<.01){v.on=false;}}
+s+=v.fs2*v.env*v.vel*.5;}
+o[n][0]=s;o[n][1]=s;}
+return true;}});
+`;
 function ensure(){ if(ctx)return true;
  try{ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});}catch(e){stt("no audio: "+e.message);return false;}
  master=ctx.createGain();master.gain.value=.7;
@@ -163,6 +193,7 @@ function ensure(){ if(ctx)return true;
  comp=ctx.createWaveShaper();comp.curve=limCurve();
  master.connect(pumpG);pumpG.connect(drv);drv.curve=dcCurve(P.drv,P.crush);drv.connect(comp);comp.connect(ctx.destination);
  ana=ctx.createAnalyser();ana.fftSize=512;comp.connect(ana);scopeLoop();
+ if(ctx.audioWorklet){const blob=new Blob([WK_SRC],{type:"application/javascript"});ctx.audioWorklet.addModule(URL.createObjectURL(blob)).then(()=>{wkNode=new AudioWorkletNode(ctx,"psy-engine");wkNode.connect(master);wkReady=true;sendPar();}).catch(()=>{});}
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
  if(!ISMOB){rev=ctx.createConvolver();rev.buffer=ir(1.5,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);}
@@ -178,7 +209,7 @@ function steal(){ if(voices.size<effPoly())return; let om=null,ot=1e9; voices.fo
 function kill(m,fast){ const v=voices.get(m); if(!v)return; const t=ctx.currentTime;
  v.a.gain.cancelScheduledValues(t); v.a.gain.setTargetAtTime(0,t,fast?.006:P.rel/4);
  try{v.o.forEach(o=>o.stop(t+(fast?.08:P.rel+.15)));}catch(e){} voices.delete(m); }
-function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended")ctx.resume();
+function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended")ctx.resume(); if(P.wk&&wkReady){wkNode.port.postMessage({t:"on",note:m,vel:vel||.8,wave:P.wave});return;}
  const t=when||ctx.currentTime;
  if(voices.has(m))kill(m,true); steal();
  const f=hz(m+(P.octave-3)*12);
@@ -215,7 +246,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  voices.set(m,{o:os,a,t});
 }
 let v_last=0, modw=0, bend=0;
-function noteOff(m,when){ const t=when||ctx.currentTime; kill(m,false); }
+function noteOff(m,when){ if(P.wk&&wkReady){wkNode.port.postMessage({t:"off",note:m});return;} const t=when||ctx.currentTime; kill(m,false); }
 /* ---- master clock scheduler (arp + seq) ---- */
 function stopClock(){ if(schedTimer){clearInterval(schedTimer);schedTimer=null;} }
 let tickCount=0;
@@ -252,6 +283,7 @@ function scopeLoop(){ requestAnimationFrame(scopeLoop); if(!ctx||!ana)return;
  if(c.width!==c.clientWidth*2){c.width=c.clientWidth*2;c.height=c.clientHeight*2;}
  const x=scopeX; x.clearRect(0,0,c.width,c.height); x.strokeStyle="#c93df0"; x.lineWidth=2; x.beginPath();
  for(let i=0;i<scopeBuf.length;i+=4){ const y=(scopeBuf[i]/255)*c.height; x.lineTo(i/scopeBuf.length*c.width,y);} x.stroke(); }
+function sendPar(){ if(wkNode)wkNode.port.postMessage({t:"par",p:{cut:P.cut,res:P.res,atk:P.atk,dec:P.dec,sus:P.sus,rel:P.rel,glide:P.gld}}); }
 /* PsyDevice contract */
 window.PsyForgeDevice={ id:"psyforge-pro-x",
  capabilities(){return{audio:true,midi:true,inputs:1,outputs:1,voices:POLY,latencyMs:4,roles:["bass","lead","arp","pad","organ","stab","pluck","keys"]};},
@@ -341,6 +373,7 @@ $("test").onclick=async()=>{ if(!powered)$("pw").click(); await sleep(150);
  $("test").classList.toggle("on",pass);
  stt(pass?("SELF-TEST PASS - peak "+peak.toFixed(2)):"SELF-TEST FAIL - no signal"); };
 $("save").onclick=()=>{ try{ localStorage.setItem("psyforge-preset",JSON.stringify(P)); stt("preset saved (localStorage)"); }catch(e){ stt("save failed"); } };
+$("wk").onclick=()=>{P.wk=!P.wk;$("wk").classList.toggle("on",P.wk);if(P.wk&&!powered)$("pw").click();sendPar();stt(P.wk?"PRO engine: AudioWorklet 16-voice single-node":"node engine");};
 try{ const sv=localStorage.getItem("psyforge-preset"); if(sv)Object.assign(P,JSON.parse(sv)); }catch(e){}
 document.addEventListener("visibilitychange",()=>{ if(!ctx)return; if(document.hidden){ctx.suspend();} else if(powered){ctx.resume();} });
 $("bpm").onchange=e=>{P.bpm=Math.max(60,Math.min(200,+e.target.value||145));e.target.value=P.bpm;syncDelay();};
