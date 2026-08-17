@@ -165,7 +165,7 @@ function ensure(){ if(ctx)return true;
  ana=ctx.createAnalyser();ana.fftSize=512;comp.connect(ana);scopeLoop();
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
- rev=ctx.createConvolver();rev.buffer=ir(ISMOB?0.8:1.5,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);
+ if(!ISMOB){rev=ctx.createConvolver();rev.buffer=ir(1.5,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);}
  lfo=ctx.createOscillator();lfo.frequency.value=P.bpm/60*P.lfr;lfoG=ctx.createGain();lfoG.gain.value=0;lfo.connect(lfoG);lfo.start();
  return true;}
 function curve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*(1+a*7));}return c;}
@@ -189,12 +189,12 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
   const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);o.start(t);os.push(o);gs.push(gg);return gg;};
  v_last=f;
  const g1=mk(WAV[P.wave],f,.5);
- const g2=mk(WAV[P.wave],f*Math.pow(2,P.det/1200),.35);
+ const g2=(P.det>1||P.uni>1)?mk(WAV[P.wave],f*Math.pow(2,P.det/1200),.35):null;
  const g3=P.sub>0.05?mk("sine",f/2,P.sub*.5):null;
  for(let u=1;u<P.uni;u++){ const off=(u%2===1?1:-1)*Math.ceil(u/2)*P.spread; mk(WAV[P.wave], f*Math.pow(2,off/1200), .4/P.uni); }
  if(P.fm>0.02&&os[0]){ const mo=ctx.createOscillator(); mo.frequency.value=f*2; const mg=ctx.createGain(); mg.gain.value=P.fm*f*1.5; mo.connect(mg); mg.connect(os[0].frequency); mo.start(t); os.push(mo); }
  if(P.penv>0.02&&P.gld<=0){ const pf=Math.pow(2,P.penv); os.forEach((o,idx)=>{ const tgt=o.frequency.value; o.frequency.setValueAtTime(tgt*pf,t); o.frequency.exponentialRampToValueAtTime(tgt,t+0.07); }); }
- const sum=ctx.createGain(); gs.forEach(g=>g.connect(sum));
+ const sum=ctx.createGain(); gs.forEach(g=>{if(g)g.connect(sum);});
  let ringOut=null;
  if(P.ring>0.02){ const ro=ctx.createOscillator(); ro.frequency.value=f*1.5; const rg=ctx.createGain(); rg.gain.value=0; const rm=ctx.createGain(); rm.gain.value=P.ring*.6; ro.connect(rg.gain); sum.connect(rg); rg.connect(rm); ringOut=rm; ro.start(t); os.push(ro); }
  const fl=ctx.createBiquadFilter();fl.type=["lowpass","highpass","bandpass","notch"][P.ftype];
@@ -205,7 +205,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  fl.Q.value=P.res*24;
  lfoG.connect(fl.detune); lfoG.gain.value=P.lfo*1200+modw*600;
  const a=ctx.createGain();a.gain.value=0;
- sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del); if(!ISMOB||P.rvb>0.25)a.connect(rev);
+ sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del); if(rev&&(!ISMOB||P.rvb>0.25))a.connect(rev);
  const pk=(vel||.8)*.6*acc;
  const gate=dur||0;
  a.gain.setValueAtTime(0,t);
