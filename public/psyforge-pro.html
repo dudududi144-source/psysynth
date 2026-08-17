@@ -243,9 +243,9 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
   if(P.gld>0&&prevF&&prevF!==fr)o.frequency.setValueAtTime(prevF,t),o.frequency.linearRampToValueAtTime(fr,t+P.gld);
   const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);if(vibG)o.detune&&(vibG.connect(o.detune));o.start(t);os.push(o);gs.push(gg);return gg;};
  if(P.eng===1){ const car=ctx.createOscillator();car.type="sine";car.frequency.setValueAtTime(f,t);if(P.gld>0&&prevF&&prevF!==f)car.frequency.setValueAtTime(prevF,t),car.frequency.linearRampToValueAtTime(f,t+P.gld);
-  const mod=ctx.createOscillator();mod.frequency.value=f*2;const mg=ctx.createGain();mg.gain.value=f*(0.5+P.fm*2);
+  const mod=ctx.createOscillator();mod.frequency.value=f*[2,3,1.5,4.5][Math.round(P.wt*3)];const mg=ctx.createGain();mg.gain.value=f*(0.5+P.fm*2);
   mod.connect(mg);mg.connect(car.frequency);const gg=ctx.createGain();gg.gain.value=.6;car.connect(gg);car.start(t);mod.start(t);os.push(car,mod);gs.push(gg); }
- else if(P.eng===2){ const H=[1,2,3,4,6,8],L=[.9,.5,.35,.25,.15,.12];
+ else if(P.eng===2){ const H=[1,2,3,4,6,8],D=[.9,.4,.2,.1,.05,.03],B=[.7,.7,.6,.5,.4,.3],L=H.map((h,i)=>D[i]+(B[i]-D[i])*P.wt);
   for(let i=0;i<H.length;i++){const o2=ctx.createOscillator();o2.type="sine";o2.frequency.value=f*H[i];const gg=ctx.createGain();gg.gain.value=L[i]*.5;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg);} }
  else if(P.eng===3){ const src=ctx.createBufferSource();src.buffer=noiseBuf();const gg=ctx.createGain();gg.gain.value=.7;src.connect(gg);src.start(t);os.push(src);gs.push(gg); }
  else if(P.eng===4){ const o2=ctx.createOscillator();o2.setPeriodicWave(morphWave(P.wt));o2.frequency.setValueAtTime(f,t);if(P.gld>0&&prevF&&prevF!==f)o2.frequency.setValueAtTime(prevF,t),o2.frequency.linearRampToValueAtTime(f,t+P.gld);const gg=ctx.createGain();gg.gain.value=.6;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg); }
