@@ -142,6 +142,7 @@ const AMODES=['up','down','updn','rnd'];
 const ARATES=[8,16,32];
 let ctx=null,master,pumpG,drv,crushN,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
+function effPoly(){ const load=1+(P.uni-1)+(P.fm>0.02?1:0)+(P.ring>0.02?1:0); return Math.max(3,Math.round(POLY/Math.sqrt(load))); }
 let step=0, nextT=0, schedTimer=null, lastClk=0;
 const seqPat=[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0]; const seqAcc=[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0];
 const seqNote=[0,0,3,0,0,0,5,0,0,0,3,0,0,7,5,3];
@@ -171,7 +172,7 @@ function curve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x
 function crushCurve(a){ const n=512,c=new Float32Array(n); const steps=Math.max(8,Math.round(256*Math.pow(2,-a*5))); for(let i=0;i<n;i++){const x=i/(n-1)*2-1; c[i]=Math.round(x*steps)/steps;} return c; }
 function ir(d,dc){const n=ctx.sampleRate*d,b=ctx.createBuffer(2,n,ctx.sampleRate);for(let c=0;c<2;c++){const x=b.getChannelData(c);for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/n,dc);}return b;}
 function syncDelay(){ if(del)del.delayTime.value=(60/P.bpm)*0.75; if(lfo)lfo.frequency.value=P.bpm/60*P.lfr; }
-function steal(){ if(voices.size<POLY)return; let om=null,ot=1e9; voices.forEach((v,m)=>{if(v.t<ot){ot=v.t;om=m;}}); if(om!=null)kill(om,true); }
+function steal(){ if(voices.size<effPoly())return; let om=null,ot=1e9; voices.forEach((v,m)=>{if(v.t<ot){ot=v.t;om=m;}}); if(om!=null)kill(om,true); }
 function kill(m,fast){ const v=voices.get(m); if(!v)return; const t=ctx.currentTime;
  v.a.gain.cancelScheduledValues(t); v.a.gain.setTargetAtTime(0,t,fast?.006:P.rel/4);
  try{v.o.forEach(o=>o.stop(t+(fast?.08:P.rel+.15)));}catch(e){} voices.delete(m); }
@@ -202,7 +203,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  fl.Q.value=P.res*20;
  lfoG.connect(fl.detune); lfoG.gain.value=P.lfo*500+modw*400;
  const a=ctx.createGain();a.gain.value=0;
- sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del);a.connect(rev);
+ sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del); if(!ISMOB||P.rvb>0.25)a.connect(rev);
  const pk=(vel||.8)*.6*acc;
  const gate=dur||0;
  a.gain.setValueAtTime(0,t);
@@ -241,7 +242,7 @@ function arpNote(){ const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return 
 function highlight(s){ document.querySelectorAll(".st").forEach((e,i)=>e.classList.toggle("on",i===s)); }
 let scopeBuf=null,scopeC=null,scopeX=null,scopeFrame=0;
 function scopeLoop(){ requestAnimationFrame(scopeLoop); if(!ctx||!ana)return;
- scopeFrame++; if(scopeFrame%2!==0)return; // throttle: draw every 2nd frame (save CPU)
+ scopeFrame++; if(scopeFrame%(ISMOB?3:2)!==0)return; // throttle: draw every 2nd frame (save CPU)
  if(!scopeBuf||scopeBuf.length!==ana.fftSize)scopeBuf=new Uint8Array(ana.fftSize); // alloc once
  ana.getByteTimeDomainData(scopeBuf);
  const c=document.getElementById("scope"); if(!c)return;
@@ -308,7 +309,7 @@ knob("drv",v=>{P.drv=v;if(drv)drv.curve=curve(v);});
 knob("dly",v=>{P.dly=v;if(dWet)dWet.gain.value=v*.5;});
 knob("rvb",v=>{P.rvb=v;if(rWet)rWet.gain.value=v*.5;});
 knob("fm",v=>{P.fm=v;$("vFm").textContent=Math.round(v*100)+"%";});
-knob("uni",v=>{P.uni=1+Math.round(v*2);$("vU").textContent=P.uni;});
+knob("uni",v=>{P.uni=1+Math.round(v*(ISMOB?1:2));$("vU").textContent=P.uni;});
 knob("spr",v=>{P.spread=v*30;$("vSp").textContent=Math.round(P.spread)+"ct";});
 knob("dfb",v=>{P.dfb=v*.9;if(fbG)fbG.gain.value=v*.9;});
 knob("ftype",v=>{P.ftype=Math.round(v*3);$("vFt").textContent=["LP","HP","BP","NT"][P.ftype];});
