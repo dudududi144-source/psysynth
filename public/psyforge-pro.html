@@ -224,11 +224,10 @@ function ensure(){ if(ctx)return true;
  try{ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});}catch(e){stt("no audio: "+e.message);return false;}
  master=ctx.createGain();master.gain.value=P.vol;
  pumpG=ctx.createGain();pumpG.gain.value=1;pumpLfo=ctx.createOscillator();pumpLfo.type="sawtooth";pumpLfo.frequency.value=P.bpm/60;pumpLfoG=ctx.createGain();pumpLfoG.gain.value=P.pmp*.4;pumpLfo.connect(pumpLfoG);pumpLfoG.connect(pumpG.gain);pumpLfo.start();
- drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
+ drv=ctx.createWaveShaper();
  comp=ctx.createWaveShaper();comp.curve=limCurve();
  master.connect(pumpG);pumpG.connect(drv);drv.curve=dcCurve(P.drv,P.crush);drv.connect(comp);const mkup=ctx.createGain();mkup.gain.value=2.4;comp.connect(mkup);mkup.connect(ctx.destination);
 
- if(ctx.audioWorklet){const blob=new Blob([WK_SRC],{type:"application/javascript"});ctx.audioWorklet.addModule(URL.createObjectURL(blob)).then(()=>{wkNode=new AudioWorkletNode(ctx,"psy-engine");wkNode.connect(master);wkReady=true;sendPar();}).catch(()=>{});}
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
  if(!ISMOB){rev=ctx.createConvolver();rev.buffer=ir(1.5,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);}
