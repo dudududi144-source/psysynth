@@ -140,7 +140,7 @@ const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[4,8,16,32];
-let ctx=null,master,pumpG,drv,crushN,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false;
+let ctx=null,master,pumpG,drv,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
 function effPoly(){ const load=1+(P.uni-1)+(P.fm>0.02?1:0)+(P.ring>0.02?1:0); return Math.max(3,Math.round(POLY/Math.sqrt(load))); }
 let step=0, nextT=0, schedTimer=null, lastClk=0;
@@ -161,7 +161,7 @@ function ensure(){ if(ctx)return true;
  pumpG=ctx.createGain();pumpG.gain.value=1;
  drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
  comp=ctx.createDynamicsCompressor();
- master.connect(pumpG);pumpG.connect(drv);crushN=ctx.createWaveShaper();crushN.curve=crushCurve(P.crush);drv.connect(crushN);crushN.connect(comp);comp.connect(ctx.destination);
+ master.connect(pumpG);pumpG.connect(drv);drv.curve=dcCurve(P.drv,P.crush);drv.connect(comp);comp.connect(ctx.destination);
  ana=ctx.createAnalyser();ana.fftSize=512;comp.connect(ana);scopeLoop();
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
@@ -170,6 +170,7 @@ function ensure(){ if(ctx)return true;
  return true;}
 function curve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*(1+a*7));}return c;}
 function crushCurve(a){ const n=512,c=new Float32Array(n); const steps=Math.max(8,Math.round(256*Math.pow(2,-a*5))); for(let i=0;i<n;i++){const x=i/(n-1)*2-1; c[i]=Math.round(x*steps)/steps;} return c; }
+function dcCurve(dr,cr){ const n=512,c=new Float32Array(n); const steps=Math.max(8,Math.round(256*Math.pow(2,-cr*5))); for(let i=0;i<n;i++){const x=i/(n-1)*2-1; let y=Math.tanh(x*(1+dr*7)); y=Math.round(y*steps)/steps; c[i]=y;} return c; }
 function ir(d,dc){const n=ctx.sampleRate*d,b=ctx.createBuffer(2,n,ctx.sampleRate);for(let c=0;c<2;c++){const x=b.getChannelData(c);for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/n,dc);}return b;}
 function syncDelay(){ if(del)del.delayTime.value=(60/P.bpm)*0.75; if(lfo)lfo.frequency.value=P.bpm/60*P.lfr; }
 function steal(){ if(voices.size<effPoly())return; let om=null,ot=1e9; voices.forEach((v,m)=>{if(v.t<ot){ot=v.t;om=m;}}); if(om!=null)kill(om,true); }
@@ -200,7 +201,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  fl.frequency.setValueAtTime(base,t);
  fl.frequency.linearRampToValueAtTime(Math.min(14000,base+P.fe*7000*acc),t+P.atk+.005);
  fl.frequency.setTargetAtTime(base,t+P.atk,P.dec/3);
- fl.Q.value=P.res*20;
+ fl.Q.value=P.res*24;
  lfoG.connect(fl.detune); lfoG.gain.value=P.lfo*1200+modw*600;
  const a=ctx.createGain();a.gain.value=0;
  sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del); if(!ISMOB||P.rvb>0.25)a.connect(rev);
@@ -287,7 +288,7 @@ function knob(id,fn){const el=$(id);let v=.5,sy=0;
   const up=()=>{el.removeEventListener("pointermove",mv);el.removeEventListener("pointerup",up);};
   el.addEventListener("pointermove",mv);el.addEventListener("pointerup",up);});}
 knob("wave",v=>{P.wave=Math.round(v*2);$("vW").textContent=WAV[P.wave];});
-knob("det",v=>{P.det=v*24;$("vD").textContent=Math.round(P.det)+"ct";});
+knob("det",v=>{P.det=v*30;$("vD").textContent=Math.round(P.det)+"ct";});
 knob("sub",v=>{P.sub=v;$("vS").textContent=Math.round(v*100)+"%";});
 knob("gld",v=>{P.gld=v*.12;$("vG").textContent=Math.round(P.gld*1000)+"ms";});
 knob("pmp",v=>{P.pmp=v;$("vP").textContent=Math.round(v*100)+"%";});
@@ -295,7 +296,7 @@ knob("cut",v=>{P.cut=80*Math.pow(2,v*8);$("vC").textContent=(P.cut/1000).toFixed
 knob("res",v=>{P.res=v;$("vR").textContent=Math.round(v*100)+"%";});
 knob("fe",v=>{P.fe=v;$("vF").textContent=Math.round(v*100)+"%";});
 knob("acc",v=>{P.acc=v>.4;$("vA").textContent=P.acc?"on":"off";});
-knob("atk",v=>{P.atk=.0008+v*.02;$("vAt").textContent=Math.round(P.atk*1000)+"ms";});
+knob("atk",v=>{P.atk=.0005+v*.03;$("vAt").textContent=Math.round(P.atk*1000)+"ms";});
 knob("dec",v=>{P.dec=.03+v*.5;$("vDe").textContent=Math.round(P.dec*1000)+"ms";});
 knob("sus",v=>{P.sus=v;$("vSu").textContent=Math.round(v*100)+"%";});
 knob("rel",v=>{P.rel=.02+v*.5;$("vRe").textContent=Math.round(P.rel*1000)+"ms";});
@@ -305,7 +306,7 @@ knob("aoct",v=>{P.aoct=1+Math.round(v*3);$("vAo").textContent=P.aoct;});
 knob("agate",v=>{P.agate=.2+v*.7;$("vAg").textContent=Math.round(v*100)+"%";});
 knob("lfo",v=>{P.lfo=v;$("vL").textContent=Math.round(v*100)+"%";if(lfoG)lfoG.gain.value=v*500;});
 knob("lfr",v=>{P.lfr=[1,2,4,8][Math.round(v*3)];$("vLr").textContent="1/"+[4,8,16,32][Math.round(v*3)];syncDelay();});
-knob("drv",v=>{P.drv=v;if(drv)drv.curve=curve(v);});
+knob("drv",v=>{P.drv=v;if(drv)drv.curve=dcCurve(v,P.crush);});
 knob("dly",v=>{P.dly=v;if(dWet)dWet.gain.value=v*.5;});
 knob("rvb",v=>{P.rvb=v;if(rWet)rWet.gain.value=v*.5;});
 knob("fm",v=>{P.fm=v;$("vFm").textContent=Math.round(v*100)+"%";});
@@ -314,7 +315,7 @@ knob("spr",v=>{P.spread=v*30;$("vSp").textContent=Math.round(P.spread)+"ct";});
 knob("dfb",v=>{P.dfb=v*.9;if(fbG)fbG.gain.value=v*.9;});
 knob("ftype",v=>{P.ftype=Math.round(v*3);$("vFt").textContent=["LP","HP","BP","NT"][P.ftype];});
 knob("ring",v=>{P.ring=v;$("vRg").textContent=Math.round(v*100)+"%";});
-knob("crush",v=>{P.crush=v;if(crushN)crushN.curve=crushCurve(v);$("vCr").textContent=Math.round(v*100)+"%";});
+knob("crush",v=>{P.crush=v;if(drv)drv.curve=dcCurve(P.drv,v);$("vCr").textContent=Math.round(v*100)+"%";});
 knob("penv",v=>{P.penv=v*12;$("vPe").textContent=Math.round(P.penv);});
 /* wheels */
 function wheel(id,fn){const el=$(id);let sy=0,v=.5;
