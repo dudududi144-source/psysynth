@@ -132,14 +132,14 @@ const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[8,16,32];
 let ctx=null,master,pumpG,drv,comp,ana,del,dWet,rev,rWet,lfo,lfoG;
-const held=new Set(); const voices=new Map(); const POLY=14;
+const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
 let step=0, nextT=0, schedTimer=null, lastClk=0;
 const seqPat=[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0]; const seqAcc=[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0];
 const seqNote=[0,0,3,0,0,0,5,0,0,0,3,0,0,7,5,3];
 function hz(m){return 440*Math.pow(2,(m-69)/12);}
 let waveCache={};
 function blWave(type){ if(waveCache[type])return waveCache[type];
- const n=48; const real=new Float32Array(n); const imag=new Float32Array(n);
+ const n=24; const real=new Float32Array(n); const imag=new Float32Array(n);
  for(let i=1;i<n;i++){
   if(type==="sawtooth")imag[i]=1/i;
   else if(type==="square")imag[i]=(i%2===1)?1/i:0;
@@ -152,10 +152,10 @@ function ensure(){ if(ctx)return true;
  drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
  comp=ctx.createDynamicsCompressor();
  master.connect(pumpG);pumpG.connect(drv);drv.connect(comp);comp.connect(ctx.destination);
- ana=ctx.createAnalyser();ana.fftSize=1024;comp.connect(ana);scopeLoop();
+ ana=ctx.createAnalyser();ana.fftSize=512;comp.connect(ana);scopeLoop();
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=.4;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
- rev=ctx.createConvolver();rev.buffer=ir(2,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);
+ rev=ctx.createConvolver();rev.buffer=ir(ISMOB?0.8:1.5,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);
  lfo=ctx.createOscillator();lfo.frequency.value=P.bpm/60*P.lfr;lfoG=ctx.createGain();lfoG.gain.value=0;lfo.connect(lfoG);lfo.start();
  return true;}
 function curve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*(1+a*7));}return c;}
@@ -177,7 +177,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  v_last=f;
  const g1=mk(WAV[P.wave],f,.5);
  const g2=mk(WAV[P.wave],f*Math.pow(2,P.det/1200),.35);
- const g3=mk("sine",f/2,P.sub*.5);
+ const g3=P.sub>0.05?mk("sine",f/2,P.sub*.5):null;
  const sum=ctx.createGain(); gs.forEach(g=>g.connect(sum));
  const fl=ctx.createBiquadFilter();fl.type="lowpass";
  const base=P.cut*Math.max(.5,Math.min(2,(1+(m-48)/96)));
@@ -224,12 +224,16 @@ function arpNote(){ const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return 
   const oct=Math.floor((arpIdx%(arr.length*octs))/arr.length);
   arpIdx++; return arr[idx]+12*oct; }
 function highlight(s){ document.querySelectorAll(".st").forEach((e,i)=>e.classList.toggle("on",i===s)); }
-function scopeLoop(){ if(!ctx||!ana)return; const d=new Uint8Array(ana.fftSize); ana.getByteTimeDomainData(d);
- const c=document.getElementById("scope"); if(c){ const x=c.getContext("2d");
-  if(c.width!==c.clientWidth*2){c.width=c.clientWidth*2;c.height=c.clientHeight*2;}
-  x.clearRect(0,0,c.width,c.height); x.strokeStyle="#c93df0"; x.lineWidth=2; x.beginPath();
-  for(let i=0;i<d.length;i+=2){ const y=(d[i]/255)*c.height; x.lineTo(i/d.length*c.width,y);} x.stroke(); }
- requestAnimationFrame(scopeLoop); }
+let scopeBuf=null,scopeC=null,scopeX=null,scopeFrame=0;
+function scopeLoop(){ requestAnimationFrame(scopeLoop); if(!ctx||!ana)return;
+ scopeFrame++; if(scopeFrame%2!==0)return; // throttle: draw every 2nd frame (save CPU)
+ if(!scopeBuf||scopeBuf.length!==ana.fftSize)scopeBuf=new Uint8Array(ana.fftSize); // alloc once
+ ana.getByteTimeDomainData(scopeBuf);
+ const c=document.getElementById("scope"); if(!c)return;
+ if(scopeC!==c){scopeC=c;scopeX=c.getContext("2d");}
+ if(c.width!==c.clientWidth*2){c.width=c.clientWidth*2;c.height=c.clientHeight*2;}
+ const x=scopeX; x.clearRect(0,0,c.width,c.height); x.strokeStyle="#c93df0"; x.lineWidth=2; x.beginPath();
+ for(let i=0;i<scopeBuf.length;i+=4){ const y=(scopeBuf[i]/255)*c.height; x.lineTo(i/scopeBuf.length*c.width,y);} x.stroke(); }
 /* PsyDevice contract */
 window.PsyForgeDevice={ id:"psyforge-pro-x",
  capabilities(){return{audio:true,midi:true,inputs:1,outputs:1,voices:POLY,latencyMs:4,roles:["bass","lead","arp","pad","organ","stab","pluck","keys"]};},
