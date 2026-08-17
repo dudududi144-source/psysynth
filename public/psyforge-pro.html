@@ -328,7 +328,13 @@ const PRESETS={
  "Goa Acid":{wave:0,cut:2200,res:.82,fe:.85,dec:.18,rel:.07,pmp:.25,sub:.5,gld:.03,arp:true,seq:false,bpm:142,arate:1,aoct:2,dly:.4,rvb:.3},
  "Hi-Tech Arp":{wave:1,cut:3000,res:.6,fe:.6,dec:.12,rel:.04,pmp:.2,sub:.4,gld:.02,arp:true,seq:false,bpm:170,arate:2,aoct:3,dly:.45,rvb:.25},
  "Prog Groove":{wave:0,cut:1500,res:.5,fe:.6,dec:.2,rel:.08,pmp:.3,sub:.6,gld:.04,arp:false,seq:true,bpm:138,dly:.3,rvb:.3},
- "Psy-Organ":{wave:2,cut:2500,res:.3,fe:.4,dec:.3,rel:.2,pmp:.1,sub:.3,gld:.0,arp:false,seq:false,bpm:140,dly:.25,rvb:.45}};
+ "Psy-Organ":{wave:2,cut:2500,res:.3,fe:.4,dec:.3,rel:.2,pmp:.1,sub:.3,gld:.0,arp:false,seq:false,bpm:140,dly:.25,rvb:.45},
+ "Twilight Arp":{wave:2,cut:2800,res:.5,fe:.5,dec:.15,rel:.05,pmp:.2,sub:.4,gld:.02,arp:true,seq:false,bpm:148,arate:1,aoct:2,dly:.4,rvb:.35},
+ "Forest Pluck":{wave:0,cut:2000,res:.7,fe:.8,dec:.1,rel:.04,pmp:.2,sub:.4,gld:.02,arp:true,seq:false,bpm:140,arate:2,aoct:2,dly:.35,rvb:.3},
+ "Nightmare Bass":{wave:1,cut:900,res:.8,fe:.85,dec:.12,rel:.05,pmp:.45,sub:.8,gld:.06,arp:false,seq:true,bpm:165,dly:.3,rvb:.2},
+ "Euphoria Lead":{wave:0,cut:3200,res:.55,fe:.6,dec:.2,rel:.1,pmp:.15,sub:.4,gld:.03,arp:false,seq:false,bpm:145,dly:.5,rvb:.4},
+ "Shamanic Stab":{wave:1,cut:1600,res:.65,fe:.7,dec:.25,rel:.15,pmp:.2,sub:.5,gld:.0,arp:false,seq:false,bpm:142,dly:.3,rvb:.35},
+ "Zenith Pad":{wave:2,cut:1800,res:.35,fe:.35,dec:.5,rel:.4,pmp:.1,sub:.3,gld:.0,arp:false,seq:false,bpm:140,dly:.3,rvb:.5}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
 ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);$("bpm").value=P.bpm;syncDelay();if(dWet)dWet.gain.value=P.dly*.5;if(rWet)rWet.gain.value=P.rvb*.5;stt("preset: "+ps.value);};
 function stt(s){$("stt").textContent=s;}
