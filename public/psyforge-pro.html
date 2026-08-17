@@ -131,7 +131,7 @@ const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[8,16,32];
-let ctx=null,master,pumpG,drv,comp,ana,del,dWet,rev,rWet,lfo,lfoG;
+let ctx=null,master,pumpG,drv,comp,ana,del,dWet,rev,rWet,lfo,lfoG,powered=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
 let step=0, nextT=0, schedTimer=null, lastClk=0;
 const seqPat=[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0]; const seqAcc=[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0];
@@ -301,9 +301,11 @@ function wheel(id,fn){const el=$(id);let sy=0,v=.5;
 wheel("pitch",v=>{bend=(v-.5)*4;});
 wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*500+v*400;});
 /* buttons */
-$("pw").onclick=()=>{ if(ensure()){ctx.resume();$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ");} };
-$("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(P.arp&&ctx)startClock();};
-$("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(P.seq&&ctx)startClock();};
+$("pw").onclick=()=>{ if(!powered){ if(ensure()){ctx.resume();powered=true;$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ");} }
+ else { powered=false;[...voices.keys()].forEach(m=>kill(m,true));stopClock();held.clear();ctx.suspend();$("pw").classList.remove("on");$("pw").textContent="POWER";stt("off - battery safe"); } };
+$("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(ctx){ if(P.arp||P.seq)startClock(); else stopClock(); }};
+$("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(ctx){ if(P.arp||P.seq)startClock(); else stopClock(); }};
+document.addEventListener("visibilitychange",()=>{ if(!ctx)return; if(document.hidden){ctx.suspend();} else if(powered){ctx.resume();} });
 $("bpm").onchange=e=>{P.bpm=Math.max(60,Math.min(200,+e.target.value||145));e.target.value=P.bpm;syncDelay();};
 $("oU").onclick=()=>{P.octave=Math.min(6,P.octave+1);layout();};
 $("oD").onclick=()=>{P.octave=Math.max(1,P.octave-1);layout();};
