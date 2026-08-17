@@ -96,7 +96,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
   </div>
   <div class="seq" id="seq" style="margin-top:8px"></div>
   <div class="ledrow" style="margin-top:6px"><div class="led" id="clk"></div> clock <div class="led" id="stl"></div> step</div></div>
- <div class="m"><h4>MOD MATRIX (live)</h4>
+ <div class="m"><h4>MOD MATRIX (live)</h4><canvas id="scope" style="width:100%;height:44px;background:#0d0819;border:1px solid var(--ln);border-radius:6px;margin-bottom:6px"></canvas>
   <div class="ledrow">Vel &rarr; Cutoff <div class="led on"></div></div>
   <div class="ledrow">LFO(sync) &rarr; Pitch <div class="led on"></div></div>
   <div class="ledrow">ModWheel &rarr; LFO amt <div class="led on"></div></div>
@@ -131,12 +131,20 @@ const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[8,16,32];
-let ctx=null,master,pumpG,drv,comp,del,dWet,rev,rWet,lfo,lfoG;
+let ctx=null,master,pumpG,drv,comp,ana,del,dWet,rev,rWet,lfo,lfoG;
 const held=new Set(); const voices=new Map(); const POLY=14;
 let step=0, nextT=0, schedTimer=null, lastClk=0;
 const seqPat=[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0]; const seqAcc=[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0];
 const seqNote=[0,0,3,0,0,0,5,0,0,0,3,0,0,7,5,3];
 function hz(m){return 440*Math.pow(2,(m-69)/12);}
+let waveCache={};
+function blWave(type){ if(waveCache[type])return waveCache[type];
+ const n=48; const real=new Float32Array(n); const imag=new Float32Array(n);
+ for(let i=1;i<n;i++){
+  if(type==="sawtooth")imag[i]=1/i;
+  else if(type==="square")imag[i]=(i%2===1)?1/i:0;
+  else if(type==="triangle")imag[i]=(i%2===1)?(((i-1)/2)%2===0?1:-1)/(i*i):0; }
+ const w=ctx.createPeriodicWave(real,imag); waveCache[type]=w; return w; }
 function ensure(){ if(ctx)return true;
  try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){stt("no audio: "+e.message);return false;}
  master=ctx.createGain();master.gain.value=.7;
@@ -144,6 +152,7 @@ function ensure(){ if(ctx)return true;
  drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
  comp=ctx.createDynamicsCompressor();
  master.connect(pumpG);pumpG.connect(drv);drv.connect(comp);comp.connect(ctx.destination);
+ ana=ctx.createAnalyser();ana.fftSize=1024;comp.connect(ana);scopeLoop();
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=.4;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
  rev=ctx.createConvolver();rev.buffer=ir(2,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);
@@ -162,7 +171,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  const f=hz(m+(P.octave-3)*12);
  const acc=P.acc&&vel>.7?1.25:1;
  const os=[]; const gs=[];
- const mk=(ty,fr,g)=>{const o=ctx.createOscillator();o.type=ty;o.frequency.setValueAtTime(fr,t);
+ const mk=(ty,fr,g)=>{const o=ctx.createOscillator();if(ty==="sine")o.type="sine";else o.setPeriodicWave(blWave(ty));o.frequency.setValueAtTime(fr,t);
   if(P.gld>0&&v_last)o.frequency.setValueAtTime(v_last,t),o.frequency.linearRampToValueAtTime(fr,t+P.gld);
   const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);o.start(t);os.push(o);gs.push(gg);return gg;};
  v_last=f;
@@ -215,6 +224,12 @@ function arpNote(){ const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return 
   const oct=Math.floor((arpIdx%(arr.length*octs))/arr.length);
   arpIdx++; return arr[idx]+12*oct; }
 function highlight(s){ document.querySelectorAll(".st").forEach((e,i)=>e.classList.toggle("on",i===s)); }
+function scopeLoop(){ if(!ctx||!ana)return; const d=new Uint8Array(ana.fftSize); ana.getByteTimeDomainData(d);
+ const c=document.getElementById("scope"); if(c){ const x=c.getContext("2d");
+  if(c.width!==c.clientWidth*2){c.width=c.clientWidth*2;c.height=c.clientHeight*2;}
+  x.clearRect(0,0,c.width,c.height); x.strokeStyle="#c93df0"; x.lineWidth=2; x.beginPath();
+  for(let i=0;i<d.length;i+=2){ const y=(d[i]/255)*c.height; x.lineTo(i/d.length*c.width,y);} x.stroke(); }
+ requestAnimationFrame(scopeLoop); }
 /* PsyDevice contract */
 window.PsyForgeDevice={ id:"psyforge-pro-x",
  capabilities(){return{audio:true,midi:true,inputs:1,outputs:1,voices:POLY,latencyMs:4,roles:["bass","lead","arp","pad","organ","stab","pluck","keys"]};},
@@ -285,7 +300,7 @@ wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*500+v*400;});
 $("pw").onclick=()=>{ if(ensure()){ctx.resume();$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ");} };
 $("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(P.arp&&ctx)startClock();};
 $("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(P.seq&&ctx)startClock();};
-$("bpm").onchange=e=>{P.bpm=+e.target.value||145;syncDelay();};
+$("bpm").onchange=e=>{P.bpm=Math.max(60,Math.min(200,+e.target.value||145));e.target.value=P.bpm;syncDelay();};
 $("oU").onclick=()=>{P.octave=Math.min(6,P.octave+1);layout();};
 $("oD").onclick=()=>{P.octave=Math.max(1,P.octave-1);layout();};
 let taps=[]; $("tap").onclick=()=>{const n=performance.now();taps.push(n);taps=taps.slice(-4);if(taps.length>1){const iv=(taps[taps.length-1]-taps[0])/(taps.length-1);P.bpm=Math.round(60000/iv);$("bpm").value=P.bpm;syncDelay();}};
