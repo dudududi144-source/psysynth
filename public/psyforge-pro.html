@@ -341,7 +341,8 @@ async function runSelfTest(){ if(selfTested||!ctx)return; selfTested=true; await
  const an=ctx.createAnalyser(); an.fftSize=256; master.connect(an);
  let peak=await measureWith(an);
  if(peak<=0.02 && P.wk&&wkReady){ P.wk=false; peak=await measureWith(an); }
- try{master.disconnect(an);}catch(e){} }
+ try{master.disconnect(an);}catch(e){}
+ stt(peak>0.02?"engine OK - peak "+peak.toFixed(2):"engine: check output/volume"); }
 /* PsyDevice contract */
 window.PsyForgeDevice={ id:"psyforge-pro-x",
  capabilities(){return{audio:true,midi:true,inputs:1,outputs:1,voices:POLY,latencyMs:4,roles:["bass","lead","arp","pad","organ","stab","pluck","keys"]};},
