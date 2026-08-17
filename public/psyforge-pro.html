@@ -79,6 +79,10 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
    <div class="k">Res<div class="d mg" id="res"></div><span class="v" id="vR">65%</span></div>
    <div class="k">EnvAmt<div class="d mg" id="fe"></div><span class="v" id="vF">70%</span></div>
    <div class="k">Acc<div class="d mg" id="acc"></div><span class="v" id="vA">on</span></div>
+   <div class="k">FType<div class="d mg" id="ftype"></div><span class="v" id="vFt">LP</span></div>
+   <div class="k">Ring<div class="d mg" id="ring"></div><span class="v" id="vRg">0%</span></div>
+   <div class="k">Crush<div class="d" id="crush"></div><span class="v" id="vCr">0%</span></div>
+   <div class="k">PEnv<div class="d" id="penv"></div><span class="v" id="vPe">0</span></div>
   </div></div>
  <div class="m"><h4>ENVELOPE (tight psy)</h4>
   <div class="kn">
@@ -97,7 +101,8 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
    <div class="k">Oct<div class="d gr" id="aoct"></div><span class="v" id="vAo">2</span></div>
    <div class="k">Gate<div class="d gr" id="agate"></div><span class="v" id="vAg">55%</span></div>
   </div>
-  <div class="seq" id="seq" style="margin-top:8px"></div>
+  <select class="sel" id="pat" style="margin:6px 0;width:100%"></select>
+  <div class="seq" id="seq" style="margin-top:4px"></div>
   <div class="ledrow" style="margin-top:6px"><div class="led" id="clk"></div> clock <div class="led" id="stl"></div> step</div></div>
  <div class="m"><h4>MOD MATRIX (live)</h4><canvas id="scope" style="width:100%;height:44px;background:#0d0819;border:1px solid var(--ln);border-radius:6px;margin-bottom:6px"></canvas>
   <div class="ledrow">Vel &rarr; Cutoff <div class="led on"></div></div>
@@ -131,11 +136,11 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
 const $=i=>document.getElementById(i);
 const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:true,
  atk:.001,dec:.16,sus:.55,rel:.06,arp:false,seq:false,amode:0,arate:1,aoct:2,agate:.55,
- lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4};
+ lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0};
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[8,16,32];
-let ctx=null,master,pumpG,drv,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false;
+let ctx=null,master,pumpG,drv,crushN,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
 let step=0, nextT=0, schedTimer=null, lastClk=0;
 const seqPat=[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0]; const seqAcc=[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0];
@@ -155,7 +160,7 @@ function ensure(){ if(ctx)return true;
  pumpG=ctx.createGain();pumpG.gain.value=1;
  drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
  comp=ctx.createDynamicsCompressor();
- master.connect(pumpG);pumpG.connect(drv);drv.connect(comp);comp.connect(ctx.destination);
+ master.connect(pumpG);pumpG.connect(drv);crushN=ctx.createWaveShaper();crushN.curve=crushCurve(P.crush);drv.connect(crushN);crushN.connect(comp);comp.connect(ctx.destination);
  ana=ctx.createAnalyser();ana.fftSize=512;comp.connect(ana);scopeLoop();
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
@@ -163,6 +168,7 @@ function ensure(){ if(ctx)return true;
  lfo=ctx.createOscillator();lfo.frequency.value=P.bpm/60*P.lfr;lfoG=ctx.createGain();lfoG.gain.value=0;lfo.connect(lfoG);lfo.start();
  return true;}
 function curve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*(1+a*7));}return c;}
+function crushCurve(a){ const n=512,c=new Float32Array(n); const steps=Math.max(8,Math.round(256*Math.pow(2,-a*5))); for(let i=0;i<n;i++){const x=i/(n-1)*2-1; c[i]=Math.round(x*steps)/steps;} return c; }
 function ir(d,dc){const n=ctx.sampleRate*d,b=ctx.createBuffer(2,n,ctx.sampleRate);for(let c=0;c<2;c++){const x=b.getChannelData(c);for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/n,dc);}return b;}
 function syncDelay(){ if(del)del.delayTime.value=(60/P.bpm)*0.75; if(lfo)lfo.frequency.value=P.bpm/60*P.lfr; }
 function steal(){ if(voices.size<POLY)return; let om=null,ot=1e9; voices.forEach((v,m)=>{if(v.t<ot){ot=v.t;om=m;}}); if(om!=null)kill(om,true); }
@@ -184,8 +190,11 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  const g3=P.sub>0.05?mk("sine",f/2,P.sub*.5):null;
  for(let u=1;u<P.uni;u++){ const off=(u%2===1?1:-1)*Math.ceil(u/2)*P.spread; mk(WAV[P.wave], f*Math.pow(2,off/1200), .4/P.uni); }
  if(P.fm>0.02&&os[0]){ const mo=ctx.createOscillator(); mo.frequency.value=f*2; const mg=ctx.createGain(); mg.gain.value=P.fm*f*1.5; mo.connect(mg); mg.connect(os[0].frequency); mo.start(t); os.push(mo); }
+ if(P.penv>0.02&&P.gld<=0){ const pf=Math.pow(2,P.penv); os.forEach((o,idx)=>{ const tgt=o.frequency.value; o.frequency.setValueAtTime(tgt*pf,t); o.frequency.exponentialRampToValueAtTime(tgt,t+0.07); }); }
  const sum=ctx.createGain(); gs.forEach(g=>g.connect(sum));
- const fl=ctx.createBiquadFilter();fl.type="lowpass";
+ let ringOut=null;
+ if(P.ring>0.02){ const ro=ctx.createOscillator(); ro.frequency.value=f*1.5; const rg=ctx.createGain(); rg.gain.value=0; const rm=ctx.createGain(); rm.gain.value=P.ring*.6; ro.connect(rg.gain); sum.connect(rg); rg.connect(rm); ringOut=rm; ro.start(t); os.push(ro); }
+ const fl=ctx.createBiquadFilter();fl.type=["lowpass","highpass","bandpass","notch"][P.ftype];
  const base=P.cut*Math.max(.5,Math.min(2,(1+(m-48)/96)));
  fl.frequency.setValueAtTime(base,t);
  fl.frequency.linearRampToValueAtTime(Math.min(14000,base+P.fe*7000*acc),t+P.atk+.005);
@@ -193,7 +202,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  fl.Q.value=P.res*20;
  lfoG.connect(fl.detune); lfoG.gain.value=P.lfo*500+modw*400;
  const a=ctx.createGain();a.gain.value=0;
- sum.connect(fl);fl.connect(a);a.connect(master);a.connect(del);a.connect(rev);
+ sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del);a.connect(rev);
  const pk=(vel||.8)*.6*acc;
  const gate=dur||0;
  a.gain.setValueAtTime(0,t);
@@ -302,6 +311,10 @@ knob("fm",v=>{P.fm=v;$("vFm").textContent=Math.round(v*100)+"%";});
 knob("uni",v=>{P.uni=1+Math.round(v*2);$("vU").textContent=P.uni;});
 knob("spr",v=>{P.spread=v*30;$("vSp").textContent=Math.round(P.spread)+"ct";});
 knob("dfb",v=>{P.dfb=v*.9;if(fbG)fbG.gain.value=v*.9;});
+knob("ftype",v=>{P.ftype=Math.round(v*3);$("vFt").textContent=["LP","HP","BP","NT"][P.ftype];});
+knob("ring",v=>{P.ring=v;$("vRg").textContent=Math.round(v*100)+"%";});
+knob("crush",v=>{P.crush=v;if(crushN)crushN.curve=crushCurve(v);$("vCr").textContent=Math.round(v*100)+"%";});
+knob("penv",v=>{P.penv=v*12;$("vPe").textContent=Math.round(P.penv);});
 /* wheels */
 function wheel(id,fn){const el=$(id);let sy=0,v=.5;
  el.addEventListener("pointerdown",e=>{e.preventDefault();el.setPointerCapture(e.pointerId);sy=e.clientY;
@@ -331,6 +344,20 @@ $("bpm").onchange=e=>{P.bpm=Math.max(60,Math.min(200,+e.target.value||145));e.ta
 $("oU").onclick=()=>{P.octave=Math.min(6,P.octave+1);layout();};
 $("oD").onclick=()=>{P.octave=Math.max(1,P.octave-1);layout();};
 let taps=[]; $("tap").onclick=()=>{const n=performance.now();taps.push(n);taps=taps.slice(-4);if(taps.length>1){const iv=(taps[taps.length-1]-taps[0])/(taps.length-1);P.bpm=Math.round(60000/iv);$("bpm").value=P.bpm;syncDelay();}};
+/* ARP/SEQ pattern presets */
+const PATTERNS={
+ "Rolling 16th":{seq:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],acc:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],arp:false},
+ "Offbeat KBB":{seq:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],acc:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],arp:false},
+ "Gallop":{seq:[1,0,1,1,0,1,1,0,1,0,1,1,0,1,1,0],acc:[1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0],arp:false},
+ "Triplet":{seq:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],acc:[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0],arp:false},
+ "Glitch":{seq:[1,0,0,1,0,1,0,0,1,0,1,0,0,1,0,1],acc:[1,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0],arp:false},
+ "Arp Up 16":{seq:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],acc:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],arp:true,amode:0,arate:1},
+ "Arp Rnd 32":{seq:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],acc:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],arp:true,amode:3,arate:2}};
+const patSel=$("pat"); Object.keys(PATTERNS).forEach(k=>{const o=document.createElement("option");o.textContent=k;patSel.appendChild(o);});
+patSel.onchange=()=>{const p=PATTERNS[patSel.value]; for(let i=0;i<16;i++){seqPat[i]=p.seq[i];seqAcc[i]=p.acc[i];}
+ if(p.arp!==undefined){P.arp=p.arp;$("arpBtn").classList.toggle("on",P.arp);} if(p.amode!==undefined)P.amode=p.amode; if(p.arate!==undefined)P.arate=p.arate;
+ document.querySelectorAll(".st").forEach((e,i)=>{e.classList.toggle("acc",!!seqAcc[i]);e.style.height=(seqPat[i]?60:25)+"%";});
+ if(ctx&&(P.arp||P.seq))startClock(); stt("pattern: "+patSel.value); };
 /* presets */
 const PRESETS={
  "Full-On Rolling":{wave:0,cut:1800,res:.65,fe:.7,dec:.16,rel:.06,pmp:.35,sub:.6,gld:.04,arp:false,seq:true,bpm:145,dly:.3,rvb:.2},
