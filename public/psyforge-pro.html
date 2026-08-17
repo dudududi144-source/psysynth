@@ -351,7 +351,7 @@ knob("amode",v=>{P.amode=Math.round(v*3);$("vAm").textContent=AMODES[P.amode];})
 knob("arate",v=>{P.arate=Math.round(v*3);$("vAr").textContent="1/"+ARATES[P.arate];});
 knob("aoct",v=>{P.aoct=1+Math.round(v*3);$("vAo").textContent=P.aoct;});
 knob("agate",v=>{P.agate=.2+v*.7;$("vAg").textContent=Math.round(v*100)+"%";});
-knob("lfo",v=>{P.lfo=v;$("vL").textContent=Math.round(v*100)+"%";if(lfoG)lfoG.gain.value=v*500;});
+knob("lfo",v=>{P.lfo=v;$("vL").textContent=Math.round(v*100)+"%";if(lfoG)lfoG.gain.value=v*1200+modw*600;if(vibG)vibG.gain.value=v*40+modw*30;});
 knob("lfr",v=>{P.lfr=[1,2,4,8][Math.round(v*3)];$("vLr").textContent="1/"+[4,8,16,32][Math.round(v*3)];syncDelay();});
 knob("drv",v=>{P.drv=v;if(drv)drv.curve=dcCurve(v,P.crush);});
 knob("dly",v=>{P.dly=v;if(dWet)dWet.gain.value=v*.5;});
@@ -371,7 +371,7 @@ function wheel(id,fn){const el=$(id);let sy=0,v=.5;
   const up=()=>{el.removeEventListener("pointermove",mv);el.removeEventListener("pointerup",up);};
   el.addEventListener("pointermove",mv);el.addEventListener("pointerup",up);});}
 wheel("pitch",v=>{bend=(v-.5)*4;});
-wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*1200+v*600;});
+wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*1200+v*600;if(vibG)vibG.gain.value=P.lfo*40+v*30;});
 /* buttons */
 $("pw").onclick=()=>{ if(!powered){ if(ensure()){ctx.resume();powered=true;$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ");} }
  else { powered=false;[...voices.keys()].forEach(m=>kill(m,true));stopClock();held.clear();ctx.suspend();$("pw").classList.remove("on");$("pw").textContent="POWER";stt("off - battery safe"); } };
@@ -425,7 +425,7 @@ const PRESETS={
  "Shamanic Stab":{wave:1,cut:1600,res:.65,fe:.7,dec:.25,rel:.15,pmp:.2,sub:.5,gld:0,seq:false,arp:false,bpm:142,dly:.3,rvb:.35},
  "Zenith Pad":{wave:2,cut:1800,res:.35,fe:.35,dec:.5,rel:.4,pmp:.1,sub:.3,gld:0,seq:false,arp:false,bpm:140,dly:.3,rvb:.5}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
-ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);$("bpm").value=P.bpm;syncDelay();if(dWet)dWet.gain.value=P.dly*.5;if(rWet)rWet.gain.value=P.rvb*.5;stt("preset: "+ps.value);};
+ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);$("bpm").value=P.bpm;syncDelay();if(dWet)dWet.gain.value=P.dly*.5;if(rWet)rWet.gain.value=P.rvb*.5;$("arpBtn").classList.toggle("on",!!P.arp);$("seqBtn").classList.toggle("on",!!P.seq);if(ctx){if(P.arp||P.seq)startClock();else stopClock();}stt("preset: "+ps.value);};
 ps.value=Object.keys(PRESETS)[0]; Object.assign(P,PRESETS[ps.value]); $("bpm").value=P.bpm; P.arp=false;P.seq=false;$("arpBtn").classList.remove("on");$("seqBtn").classList.remove("on");
 function stt(s){$("stt").textContent=s;}
 </script>
