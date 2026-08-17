@@ -191,14 +191,14 @@ function ensure(){ if(ctx)return true;
  pumpG=ctx.createGain();pumpG.gain.value=1;pumpLfo=ctx.createOscillator();pumpLfo.type="sawtooth";pumpLfo.frequency.value=P.bpm/60;pumpLfoG=ctx.createGain();pumpLfoG.gain.value=P.pmp*.4;pumpLfo.connect(pumpLfoG);pumpLfoG.connect(pumpG.gain);pumpLfo.start();
  drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
  comp=ctx.createWaveShaper();comp.curve=limCurve();
- master.connect(pumpG);pumpG.connect(drv);drv.curve=dcCurve(P.drv,P.crush);drv.connect(comp);comp.connect(ctx.destination);
+ master.connect(pumpG);pumpG.connect(drv);drv.curve=dcCurve(P.drv,P.crush);drv.connect(comp);const mkup=ctx.createGain();mkup.gain.value=2.4;comp.connect(mkup);mkup.connect(ctx.destination);
  ana=ctx.createAnalyser();ana.fftSize=512;comp.connect(ana);scopeLoop();
  if(ctx.audioWorklet){const blob=new Blob([WK_SRC],{type:"application/javascript"});ctx.audioWorklet.addModule(URL.createObjectURL(blob)).then(()=>{wkNode=new AudioWorkletNode(ctx,"psy-engine");wkNode.connect(master);wkReady=true;sendPar();}).catch(()=>{});}
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
  if(!ISMOB){rev=ctx.createConvolver();rev.buffer=ir(1.5,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);}
  lfo=ctx.createOscillator();lfo.frequency.value=P.bpm/60*P.lfr;lfoG=ctx.createGain();lfoG.gain.value=0;lfo.connect(lfoG);lfo.start();
- return true;}
+ syncDelay(); return true;}
 function curve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*(1+a*7));}return c;}
 function crushCurve(a){ const n=512,c=new Float32Array(n); const steps=Math.max(8,Math.round(256*Math.pow(2,-a*5))); for(let i=0;i<n;i++){const x=i/(n-1)*2-1; c[i]=Math.round(x*steps)/steps;} return c; }
 function limCurve(){const n=1024,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*1.3)/Math.tanh(1.3);}return c;}
@@ -233,11 +233,11 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  fl.frequency.setValueAtTime(base,t);
  fl.frequency.linearRampToValueAtTime(Math.min(14000,base+P.fe*7000*acc),t+P.atk+.005);
  fl.frequency.setTargetAtTime(base,t+P.atk,P.dec/3);
- fl.Q.value=P.res*24;
+ fl.Q.value=P.res*14;
  lfoG.connect(fl.detune); lfoG.gain.value=P.lfo*1200+modw*600;
  const a=ctx.createGain();a.gain.value=0;
  sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del); if(rev&&(!ISMOB||P.rvb>0.25))a.connect(rev);
- const pk=(vel||.8)*.6*acc;
+ const pk=(vel||.8)*.95*acc;
  const gate=dur||0;
  a.gain.setValueAtTime(0,t);
  a.gain.linearRampToValueAtTime(pk,t+Math.max(.0008,P.atk));
