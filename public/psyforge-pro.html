@@ -166,9 +166,9 @@ if(m.t==="par")Object.assign(this.P,m.p);
 if(m.t==="on"){const v=this.alloc();this.noteOn(v,m);}
 if(m.t==="off"){for(const v of this.V)if(v.on&&v.note===m.note&&!v.rel){v.rel=true;v.stage=2;v.tt=0;}}};}
 hz(n){return 440*Math.pow(2,(n-69)/12);}
-alloc(){for(const v of this.V)if(!v.on)return v;let o=this.V[0];for(const v of this.V)if(v.tt<o.tt)o=v;return o;}
-noteOn(v,m){const P=this.P;v.on=true;v.rel=false;v.note=m.note;v.vel=m.vel;v.tf=this.hz(m.note);
-v.f=(P.glide>0&&v.f>0)?v.f:v.tf;v.ph=[0,0,0];v.subPh=0;v.fmPh=0;v.ringPh=0;v.stage=0;v.tt=0;v.env=0;v.fs1=0;v.fs2=0;
+alloc(){for(const v of this.V)if(!v.on)return v;let o=this.V[0];for(const v of this.V)if(v.tt>o.tt)o=v;return o;}
+noteOn(v,m){const P=this.P;const wasOn=v.on&&!v.rel;v.on=true;v.rel=false;v.note=m.note;v.vel=m.vel;v.tf=this.hz(m.note);
+v.f=(P.glide>0&&wasOn&&v.f>0)?v.f:v.tf;v.ph=[0,0,0];v.subPh=0;v.fmPh=0;v.ringPh=0;v.stage=0;v.tt=0;v.env=0;v.fs1=0;v.fs2=0;
 v.w=(m.wave!=null?m.wave:P.wave);v.fm=(m.fm!=null?m.fm:P.fm);v.ring=(m.ring!=null?m.ring:P.ring);
 v.uni=(m.uni!=null?m.uni:P.uni);v.spread=(m.spread!=null?m.spread:P.spread);v.penv=(m.penv!=null?m.penv:P.penv);
 v.ftype=(m.ftype!=null?m.ftype:P.ftype);
