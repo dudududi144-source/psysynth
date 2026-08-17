@@ -251,6 +251,8 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  else if(P.eng===3){ const src=ctx.createBufferSource();src.buffer=noiseBuf();const gg=ctx.createGain();gg.gain.value=.7;src.connect(gg);src.start(t);os.push(src);gs.push(gg); }
  else if(P.eng===4){ const o2=ctx.createOscillator();o2.setPeriodicWave(morphWave(P.wt));o2.frequency.setValueAtTime(f,t);if(P.gld>0&&prevF&&prevF!==f)o2.frequency.setValueAtTime(prevF,t),o2.frequency.linearRampToValueAtTime(f,t+P.gld);const gg=ctx.createGain();gg.gain.value=.6;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg); }
  else if(P.eng===5){ const o2=ctx.createOscillator();o2.setPeriodicWave(morphWave(0.2));o2.frequency.setValueAtTime(f,t);if(P.gld>0&&prevF&&prevF!==f)o2.frequency.setValueAtTime(prevF,t),o2.frequency.linearRampToValueAtTime(f,t+P.gld); const f1=ctx.createBiquadFilter();f1.type="bandpass";f1.frequency.value=500+P.wt*400;f1.Q.value=8; const f2=ctx.createBiquadFilter();f2.type="bandpass";f2.frequency.value=1000+P.wt*900;f2.Q.value=10; const ga=ctx.createGain();ga.gain.value=.8; const gb=ctx.createGain();gb.gain.value=.5; o2.connect(f1);f1.connect(ga); o2.connect(f2);f2.connect(gb); o2.start(t); os.push(o2); gs.push(ga,gb); }
+ else if(P.eng===6){ const D=[-14,-7,0,7,14]; for(let i=0;i<D.length;i++){const o2=ctx.createOscillator();o2.setPeriodicWave(blWave("sawtooth"));o2.frequency.value=f*Math.pow(2,D[i]/1200);const gg=ctx.createGain();gg.gain.value=.3;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg);} }
+ else if(P.eng===7){ const R=[1,2.76,5.4,8.9],L2=[.9,.4,.2,.1]; for(let i=0;i<R.length;i++){const o2=ctx.createOscillator();o2.type="sine";o2.frequency.value=f*R[i];const gg=ctx.createGain();gg.gain.value=L2[i]*.5;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg);} }
  else { const g1=mk(WAV[P.wave],f,.5);
   const g2=(P.det>1||P.uni>1)?mk(WAV[P.wave],f*Math.pow(2,P.det/1200),.35):null;
   for(let u=1;u<P.uni;u++){ const off=(u%2===1?1:-1)*Math.ceil(u/2)*P.spread; mk(WAV[P.wave], f*Math.pow(2,off/1200), .4/P.uni); } }
@@ -391,7 +393,7 @@ knob("rvb",v=>{P.rvb=v;if(rWet)rWet.gain.value=v*.5;});
 knob("fm",v=>{P.fm=v;$("vFm").textContent=Math.round(v*100)+"%";});
 knob("uni",v=>{P.uni=1+Math.round(v*(ISMOB?1:2));$("vU").textContent=P.uni;});
 knob("spr",v=>{P.spread=v*30;$("vSp").textContent=Math.round(P.spread)+"ct";});
-knob("eng",v=>{P.eng=Math.round(v*5);$("vEn").textContent=["SUB","FM","ORG","NSE","WT","VOW"][P.eng];updateEngUI();});
+knob("eng",v=>{P.eng=Math.round(v*7);$("vEn").textContent=["SUB","FM","ORG","NSE","WT","VOW","SSAW","BEL"][P.eng];updateEngUI();});
 knob("wt",v=>{P.wt=v;$("vWt").textContent=Math.round(v*100)+"%";});
 knob("dfb",v=>{P.dfb=v*.9;if(fbG)fbG.gain.value=v*.9;});
 knob("vol",v=>{P.vol=.1+v*1.1;if(master)master.gain.value=P.vol;$("vVo").textContent=Math.round(P.vol*100)+"%";});
@@ -519,7 +521,9 @@ const PRESETS={
 ,"Wind Riser":{wave:0,eng:3,cut:1800,res:.5,fe:.6,dec:1.2,rel:.9,pmp:.1,sub:0,gld:0,seq:false,arp:false,bpm:135,dly:.3,rvb:.55}
 ,"Digital Dreams Pad":{wave:0,eng:4,wt:.8,cut:2600,res:.3,fe:.4,dec:.6,rel:.6,pmp:.1,sub:.25,gld:0,seq:false,arp:false,bpm:132,dly:.35,rvb:.55}
 ,"Neon Lead":{wave:0,eng:4,wt:.3,cut:3400,res:.45,fe:.5,dec:.2,rel:.15,pmp:.15,sub:.2,gld:0,seq:false,arp:false,bpm:148,dly:.35,rvb:.3}
-,"Alien Voice":{wave:0,eng:5,wt:.7,cut:3000,res:.4,fe:.5,dec:.25,rel:.2,pmp:.12,sub:.15,gld:0,seq:false,arp:false,bpm:140,dly:.35,rvb:.4}};
+,"Alien Voice":{wave:0,eng:5,wt:.7,cut:3000,res:.4,fe:.5,dec:.25,rel:.2,pmp:.12,sub:.15,gld:0,seq:false,arp:false,bpm:140,dly:.35,rvb:.4}
+,"Trance Supersaw":{wave:0,eng:6,cut:3600,res:.4,fe:.5,dec:.3,rel:.25,pmp:.15,sub:.3,gld:0,seq:false,arp:false,bpm:145,dly:.35,rvb:.4}
+,"Glass Bell Chime":{wave:0,eng:7,cut:8000,res:.1,fe:.15,dec:.6,rel:.5,pmp:.05,sub:0,gld:0,seq:false,arp:false,bpm:130,dly:.5,rvb:.55}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
 const ENGMAP={"Psy-Organ":2,"Shamanic Stab":1,"Forest Pluck":3,"Hi-Tech Arp":4,"Twilight Arp":4,"Euphoria Lead":4,"Zenith Pad":4,"Euphoria Lead":5};
 function applySeqPattern(pat,acc){ for(let i=0;i<16;i++){seqPat[i]=pat[i]?1:0;seqAcc[i]=(acc&&acc[i])?1:0;} document.querySelectorAll(".st").forEach((e,i)=>{e.classList.toggle("acc",!!seqAcc[i]);e.style.height=(seqPat[i]?60:25)+"%";}); }
