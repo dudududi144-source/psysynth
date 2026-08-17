@@ -146,7 +146,7 @@ const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:
  atk:.001,dec:.16,sus:.55,rel:.06,arp:false,seq:false,amode:0,arate:2,aoct:2,agate:.55,
  lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0,wk:false,scope:false,rat:0,mask:false,eng:0,wt:0,vol:.7,off:false,swing:0,off:0};
 const WAV=['sawtooth','square','triangle'];
-const AMODES=['up','down','updn','rnd'];
+const AMODES=['up','down','updn','rnd','conv','walk'];
 const RATES=[{l:"1/2",m:2},{l:"1/4",m:1},{l:"1/8",m:.5},{l:"1/8.",m:.75},{l:"1/8T",m:1/3},{l:"1/16",m:.25},{l:"1/16.",m:.375},{l:"1/16T",m:1/6},{l:"1/32",m:.125}];
 let ctx=null,master,pumpG,pumpLfo,pumpLfoG,drv,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,vibG,powered=false,wkNode=null,wkReady=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
@@ -303,11 +303,13 @@ function stopArpClock(){ if(arpTimer){clearInterval(arpTimer);arpTimer=null;} }
 function arpTick(t,step){ if(!P.arp||!held.size)return; if(P.mask&&!seqPat[step%16])return; let tt=t; if(step%2===1)tt+=P.swing*arpStepDur()*.5;
  const n=arpNote(); if(n==null)return; const gd=arpStepDur()*P.agate; noteOn(n,.8,tt,gd);
  if(P.rat>=1)noteOn(n,.7,tt+arpStepDur()/2,gd*.5); if(P.rat>=2)noteOn(n,.6,tt+arpStepDur()*0.75,gd*.4); }
-let arpIdx=0;
+let arpIdx=0,walkIdx=0;
 function arpNote(){ const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return null;
   const octs=P.aoct; let idx;
   switch(P.amode){case 0: idx=arpIdx%arr.length; break; case 1: idx=(arr.length-1)-(arpIdx%arr.length); break;
    case 2:{const m2=2*arr.length; let x=arpIdx%m2; idx=x<arr.length?x:(m2-1-x);} break;
+   case 4:{ const n2=arr.length; idx=(arpIdx%2===0)? Math.floor(arpIdx/2)%n2 : (n2-1-Math.floor(arpIdx/2))%n2; break; }
+   case 5:{ walkIdx=Math.max(0,Math.min(arr.length-1,walkIdx+(Math.random()<.5?-1:1))); idx=walkIdx; break; }
    default: idx=Math.floor(Math.random()*arr.length);}
   const oct=Math.floor((arpIdx%(arr.length*octs))/arr.length);
   arpIdx++; return arr[idx]+12*oct; }
@@ -371,7 +373,7 @@ knob("atk",v=>{P.atk=.0005+v*.03;$("vAt").textContent=Math.round(P.atk*1000)+"ms
 knob("dec",v=>{P.dec=.03+v*.5;$("vDe").textContent=Math.round(P.dec*1000)+"ms";});
 knob("sus",v=>{P.sus=v;$("vSu").textContent=Math.round(v*100)+"%";});
 knob("rel",v=>{P.rel=.02+v*.5;$("vRe").textContent=Math.round(P.rel*1000)+"ms";});
-knob("amode",v=>{P.amode=Math.round(v*3);$("vAm").textContent=AMODES[P.amode];});
+knob("amode",v=>{P.amode=Math.round(v*5);$("vAm").textContent=AMODES[P.amode];});
 knob("arate",v=>{P.arate=Math.round(v*8);$("vAr").textContent=RATES[P.arate].l;});
 knob("aoct",v=>{P.aoct=1+Math.round(v*3);$("vAo").textContent=P.aoct;});
 knob("agate",v=>{P.agate=.2+v*.7;$("vAg").textContent=Math.round(v*100)+"%";});
@@ -481,7 +483,9 @@ const PRESETS={
 ,"Dotted Groove Arp":{arp:true,seq:false,amode:0,arate:6,aoct:2,agate:.6,swing:.3,off:0,rat:0,wave:0,eng:4,wt:.5,cut:2500,res:.5,fe:.55,dec:.18,rel:.08,pmp:.2,sub:.4,gld:0,bpm:138,dly:.35,rvb:.3}
 ,"Goa Uplift Arp":{arp:true,seq:false,amode:0,arate:5,aoct:4,agate:.5,swing:0,off:0,rat:0,wave:0,eng:0,cut:3500,res:.5,fe:.6,dec:.15,rel:.07,pmp:.15,sub:.3,gld:0,bpm:145,dly:.45,rvb:.4}
 ,"Dark Spiral Down":{arp:true,seq:false,amode:1,arate:7,aoct:3,agate:.5,swing:0,off:0,rat:0,wave:1,eng:0,cut:1200,res:.7,fe:.75,dec:.13,rel:.05,pmp:.3,sub:.6,gld:0,bpm:150,dly:.3,rvb:.25}
-,"Shuffle Pluck Arp":{arp:true,seq:false,amode:0,arate:5,aoct:2,agate:.45,swing:.5,off:0,rat:0,wave:0,eng:0,cut:2400,res:.65,fe:.8,dec:.1,rel:.05,pmp:.2,sub:.35,gld:0,bpm:143,dly:.35,rvb:.3}};
+,"Shuffle Pluck Arp":{arp:true,seq:false,amode:0,arate:5,aoct:2,agate:.45,swing:.5,off:0,rat:0,wave:0,eng:0,cut:2400,res:.65,fe:.8,dec:.1,rel:.05,pmp:.2,sub:.35,gld:0,bpm:143,dly:.35,rvb:.3}
+,"Converging Vortex":{arp:true,seq:false,amode:4,arate:7,aoct:2,agate:.5,swing:0,off:0,rat:0,wave:0,eng:0,cut:2600,res:.6,fe:.7,dec:.13,rel:.05,pmp:.25,sub:.4,gld:0,bpm:146,dly:.35,rvb:.3}
+,"Random Walk Trips":{arp:true,seq:false,amode:5,arate:5,aoct:3,agate:.55,swing:.2,off:0,rat:0,wave:2,eng:0,cut:2200,res:.55,fe:.6,dec:.16,rel:.07,pmp:.2,sub:.35,gld:0,bpm:140,dly:.4,rvb:.35}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
 const ENGMAP={"Psy-Organ":2,"Shamanic Stab":1,"Forest Pluck":3,"Hi-Tech Arp":4,"Twilight Arp":4,"Euphoria Lead":4,"Zenith Pad":4,"Euphoria Lead":5};
 ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);if(p.eng!=null)P.eng=p.eng; else if(ENGMAP[ps.value]!=null)P.eng=ENGMAP[ps.value];$("bpm").value=P.bpm;syncDelay();if(dWet)dWet.gain.value=P.dly*.5;if(rWet)rWet.gain.value=P.rvb*.5;$("arpBtn").classList.toggle("on",!!P.arp);$("seqBtn").classList.toggle("on",!!P.seq);if(ctx){if(P.arp)startArpClock();else stopArpClock(); if(P.seq)startClock();else stopClock();}syncKnobs();stt("preset: "+ps.value);};
