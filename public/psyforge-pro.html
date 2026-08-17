@@ -475,7 +475,12 @@ const PATTERNS={
  "Triplet":{seq:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],acc:[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0],arp:false},
  "Glitch":{seq:[1,0,0,1,0,1,0,0,1,0,1,0,0,1,0,1],acc:[1,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0],arp:false},
  "Arp Up 16":{seq:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],acc:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],arp:true,amode:0,arate:2},
- "Arp Rnd 32":{seq:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],acc:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],arp:true,amode:3,arate:5}};
+ "Arp Rnd 32":{seq:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],acc:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],arp:true,amode:3,arate:5},
+ "3+3+2 Polyrhythm":{seq:[1,0,0,1,0,0,1,0,1,1,0,0,1,0,0,0],acc:[1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0],arp:false},
+ "Acid Roll":{seq:[1,0,1,0,0,1,0,1,0,0,1,0,1,0,0,1],acc:[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],arp:false},
+ "Dub Echo":{seq:[1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0],acc:[1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],arp:false},
+ "Neuro Growl":{seq:[1,1,0,0,1,0,0,1,1,0,0,1,0,0,1,0],acc:[1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0],arp:false},
+ "Half-Time Slam":{seq:[1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0],acc:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],arp:false}};
 const patSel=$("pat"); Object.keys(PATTERNS).forEach(k=>{const o=document.createElement("option");o.textContent=k;patSel.appendChild(o);});
 patSel.onchange=()=>{const p=PATTERNS[patSel.value]; for(let i=0;i<16;i++){seqPat[i]=p.seq[i];seqAcc[i]=p.acc[i];}
  if(p.arp!==undefined){P.arp=p.arp;$("arpBtn").classList.toggle("on",P.arp);} if(p.amode!==undefined)P.amode=p.amode; if(p.arate!==undefined)P.arate=p.arate;
@@ -570,7 +575,12 @@ const PRESETS={
 ,"Bhairav Ritual":{arp:true,seq:false,amel:11,arate:5,aoct:2,agate:.55,swing:0,off:0,rat:0,wave:0,eng:5,wt:.4,cut:2400,res:.6,fe:.6,dec:.14,rel:.07,pmp:.2,sub:.4,gld:0,bpm:142,dly:.35,rvb:.35}
 ,"Gypsy Caravan":{arp:true,seq:false,amel:12,arate:6,aoct:1,agate:.5,swing:.3,off:0,rat:0,wave:0,eng:8,cut:2200,res:.5,fe:.5,dec:.15,rel:.1,pmp:.15,sub:.3,gld:0,bpm:138,dly:.3,rvb:.3}
 ,"Phrygian Temple":{arp:true,seq:false,amel:13,arate:7,aoct:1,agate:.5,swing:0,off:0,rat:1,wave:1,eng:0,cut:2000,res:.7,fe:.7,dec:.13,rel:.05,pmp:.3,sub:.5,gld:0,bpm:148,dly:.3,rvb:.25}
-,"Enigma Ascension":{arp:true,seq:false,amel:14,arate:8,aoct:2,agate:.45,swing:0,off:0,rat:1,wave:0,eng:6,cut:3400,res:.5,fe:.55,dec:.11,rel:.05,pmp:.15,sub:.25,gld:0,bpm:160,dly:.4,rvb:.3}};
+,"Enigma Ascension":{arp:true,seq:false,amel:14,arate:8,aoct:2,agate:.45,swing:0,off:0,rat:1,wave:0,eng:6,cut:3400,res:.5,fe:.55,dec:.11,rel:.05,pmp:.15,sub:.25,gld:0,bpm:160,dly:.4,rvb:.3}
+,"3+3+2 Ritual Bass":{seq:true,arp:false,pat:[1,0,0,1,0,0,1,0,1,1,0,0,1,0,0,0],acc:[1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0],wave:0,eng:0,cut:1700,res:.65,fe:.7,dec:.14,rel:.06,pmp:.4,sub:.65,gld:.04,bpm:143,dly:.3,rvb:.2}
+,"Acid Roll Line":{seq:true,arp:false,pat:[1,0,1,0,0,1,0,1,0,0,1,0,1,0,0,1],acc:[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],wave:0,eng:0,cut:2400,res:.9,fe:.9,dec:.12,rel:.05,pmp:.3,sub:.5,gld:.03,bpm:140,dly:.35,rvb:.25}
+,"Dub Bass Echo":{seq:true,arp:false,pat:[1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0],acc:[1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],wave:0,eng:0,cut:1400,res:.6,fe:.6,dec:.18,rel:.1,pmp:.35,sub:.7,gld:.05,bpm:132,dly:.5,rvb:.4}
+,"Neuro Growl Bass":{seq:true,arp:false,pat:[1,1,0,0,1,0,0,1,1,0,0,1,0,0,1,0],acc:[1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0],wave:1,eng:0,cut:1100,res:.75,fe:.8,dec:.13,rel:.05,pmp:.4,sub:.8,gld:.04,bpm:150,dly:.3,rvb:.2}
+,"Half-Time Slam":{seq:true,arp:false,pat:[1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0],acc:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],wave:0,eng:0,cut:1600,res:.7,fe:.7,dec:.15,rel:.08,pmp:.45,sub:.7,gld:.05,bpm:138,dly:.3,rvb:.25}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
 const ENGMAP={"Psy-Organ":2,"Shamanic Stab":1,"Forest Pluck":8,"Hi-Tech Arp":6,"Twilight Arp":4,"Euphoria Lead":6,"Zenith Pad":4};
 function applySeqPattern(pat,acc){ for(let i=0;i<16;i++){seqPat[i]=pat[i]?1:0;seqAcc[i]=(acc&&acc[i])?1:0;} document.querySelectorAll(".st").forEach((e,i)=>{e.classList.toggle("acc",!!seqAcc[i]);e.style.height=(seqPat[i]?60:25)+"%";}); }
