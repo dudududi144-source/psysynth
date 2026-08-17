@@ -139,7 +139,7 @@ const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:
  lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0};
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
-const ARATES=[8,16,32];
+const ARATES=[4,8,16,32];
 let ctx=null,master,pumpG,drv,crushN,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
 function effPoly(){ const load=1+(P.uni-1)+(P.fm>0.02?1:0)+(P.ring>0.02?1:0); return Math.max(3,Math.round(POLY/Math.sqrt(load))); }
@@ -180,7 +180,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  const t=when||ctx.currentTime;
  if(voices.has(m))kill(m,true); steal();
  const f=hz(m+(P.octave-3)*12);
- const acc=P.acc&&vel>.7?1.25:1;
+ const acc=P.acc&&vel>.7?1.45:1;
  const os=[]; const gs=[];
  const mk=(ty,fr,g)=>{const o=ctx.createOscillator();if(ty==="sine")o.type="sine";else o.setPeriodicWave(blWave(ty));o.frequency.setValueAtTime(fr,t);
   if(P.gld>0&&v_last)o.frequency.setValueAtTime(v_last,t),o.frequency.linearRampToValueAtTime(fr,t+P.gld);
@@ -201,7 +201,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  fl.frequency.linearRampToValueAtTime(Math.min(14000,base+P.fe*7000*acc),t+P.atk+.005);
  fl.frequency.setTargetAtTime(base,t+P.atk,P.dec/3);
  fl.Q.value=P.res*20;
- lfoG.connect(fl.detune); lfoG.gain.value=P.lfo*500+modw*400;
+ lfoG.connect(fl.detune); lfoG.gain.value=P.lfo*1200+modw*600;
  const a=ctx.createGain();a.gain.value=0;
  sum.connect(fl); if(ringOut)ringOut.connect(fl); fl.connect(a);a.connect(master);a.connect(del); if(!ISMOB||P.rvb>0.25)a.connect(rev);
  const pk=(vel||.8)*.6*acc;
@@ -227,7 +227,7 @@ function tick32(t){
  if(tickCount%8===0&&pumpG&&P.pmp>0){ pumpG.gain.cancelScheduledValues(t); pumpG.gain.setValueAtTime(1-P.pmp*.6,t); pumpG.gain.setTargetAtTime(1,t+.03,.07); }
   if(P.seq && tickCount%2===0){ const s=(tickCount/2)%16; highlight(s);
     if(seqPat[s]) noteOn(36+seqNote[s]+(P.octave-3)*12, seqAcc[s]?0.95:0.8, t, (60/P.bpm)/4*0.5); }
-  if(P.arp && held.size){ const div=[4,2,1][P.arate]; if(tickCount%div===0){ const n=arpNote();
+  if(P.arp && held.size){ const div=[8,4,2,1][P.arate]; if(tickCount%div===0){ const n=arpNote();
     if(n!=null) noteOn(n,0.8,t,(60/P.bpm)/(ARATES[P.arate]/4)*P.agate); } }
 }
 function stepDur(){return (60/P.bpm)/4;}
@@ -242,7 +242,7 @@ function arpNote(){ const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return 
 function highlight(s){ document.querySelectorAll(".st").forEach((e,i)=>e.classList.toggle("on",i===s)); }
 let scopeBuf=null,scopeC=null,scopeX=null,scopeFrame=0;
 function scopeLoop(){ requestAnimationFrame(scopeLoop); if(!ctx||!ana)return;
- scopeFrame++; if(scopeFrame%(ISMOB?3:2)!==0)return; // throttle: draw every 2nd frame (save CPU)
+ if(ctx.state!=="running")return; scopeFrame++; if(scopeFrame%(ISMOB?3:2)!==0)return; // throttle: draw every 2nd frame (save CPU)
  if(!scopeBuf||scopeBuf.length!==ana.fftSize)scopeBuf=new Uint8Array(ana.fftSize); // alloc once
  ana.getByteTimeDomainData(scopeBuf);
  const c=document.getElementById("scope"); if(!c)return;
@@ -300,11 +300,11 @@ knob("dec",v=>{P.dec=.03+v*.5;$("vDe").textContent=Math.round(P.dec*1000)+"ms";}
 knob("sus",v=>{P.sus=v;$("vSu").textContent=Math.round(v*100)+"%";});
 knob("rel",v=>{P.rel=.02+v*.5;$("vRe").textContent=Math.round(P.rel*1000)+"ms";});
 knob("amode",v=>{P.amode=Math.round(v*3);$("vAm").textContent=AMODES[P.amode];});
-knob("arate",v=>{P.arate=Math.round(v*2);$("vAr").textContent=ARATES[P.arate];});
+knob("arate",v=>{P.arate=Math.round(v*3);$("vAr").textContent="1/"+ARATES[P.arate];});
 knob("aoct",v=>{P.aoct=1+Math.round(v*3);$("vAo").textContent=P.aoct;});
 knob("agate",v=>{P.agate=.2+v*.7;$("vAg").textContent=Math.round(v*100)+"%";});
 knob("lfo",v=>{P.lfo=v;$("vL").textContent=Math.round(v*100)+"%";if(lfoG)lfoG.gain.value=v*500;});
-knob("lfr",v=>{P.lfr=v<.5?1:2;$("vLr").textContent=P.lfr===1?"1/8":"1/4";syncDelay();});
+knob("lfr",v=>{P.lfr=[1,2,4,8][Math.round(v*3)];$("vLr").textContent="1/"+[4,8,16,32][Math.round(v*3)];syncDelay();});
 knob("drv",v=>{P.drv=v;if(drv)drv.curve=curve(v);});
 knob("dly",v=>{P.dly=v;if(dWet)dWet.gain.value=v*.5;});
 knob("rvb",v=>{P.rvb=v;if(rWet)rWet.gain.value=v*.5;});
@@ -323,12 +323,12 @@ function wheel(id,fn){const el=$(id);let sy=0,v=.5;
   const up=()=>{el.removeEventListener("pointermove",mv);el.removeEventListener("pointerup",up);};
   el.addEventListener("pointermove",mv);el.addEventListener("pointerup",up);});}
 wheel("pitch",v=>{bend=(v-.5)*4;});
-wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*500+v*400;});
+wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*1200+v*600;});
 /* buttons */
-$("pw").onclick=()=>{ if(!powered){ if(ensure()){ctx.resume();powered=true;$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ");} }
+$("pw").onclick=()=>{ if(!powered){ if(ensure()){ctx.resume();powered=true;$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();startClock();stt("powered - play / ARP / SEQ");} }
  else { powered=false;[...voices.keys()].forEach(m=>kill(m,true));stopClock();held.clear();ctx.suspend();$("pw").classList.remove("on");$("pw").textContent="POWER";stt("off - battery safe"); } };
-$("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(ctx){ if(P.arp||P.seq)startClock(); else stopClock(); }};
-$("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(ctx){ if(P.arp||P.seq)startClock(); else stopClock(); }};
+$("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);};
+$("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 $("test").onclick=async()=>{ if(!powered)$("pw").click(); await sleep(150);
  noteOn(45,.9); let peak=0; const t0=performance.now();
