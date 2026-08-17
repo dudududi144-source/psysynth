@@ -291,14 +291,14 @@ $("oD").onclick=()=>{P.octave=Math.max(1,P.octave-1);layout();};
 let taps=[]; $("tap").onclick=()=>{const n=performance.now();taps.push(n);taps=taps.slice(-4);if(taps.length>1){const iv=(taps[taps.length-1]-taps[0])/(taps.length-1);P.bpm=Math.round(60000/iv);$("bpm").value=P.bpm;syncDelay();}};
 /* presets */
 const PRESETS={
- "Full-On Rolling":{wave:0,cut:1800,res:.65,fe:.7,dec:.16,rel:.06,pmp:.35,arp:false,seq:true,bpm:145},
- "Dark Psy":{wave:1,cut:1200,res:.7,fe:.75,dec:.14,rel:.05,pmp:.4,seq:true,bpm:160},
- "Goa Acid":{wave:0,cut:2200,res:.8,fe:.85,dec:.18,rel:.07,pmp:.25,arp:true,seq:false,bpm:142},
- "Hi-Tech Arp":{wave:1,cut:3000,res:.6,fe:.6,dec:.12,rel:.04,pmp:.2,arp:true,seq:false,bpm:170,arate:2,aoct:3},
- "Prog Groove":{wave:0,cut:1500,res:.5,fe:.6,dec:.2,rel:.08,pmp:.3,seq:true,bpm:138},
- "Psy-Organ":{wave:2,cut:2500,res:.3,fe:.4,dec:.3,rel:.2,pmp:.1,arp:false,seq:false,bpm:140}};
+ "Full-On Rolling":{wave:0,cut:1800,res:.65,fe:.7,dec:.16,rel:.06,pmp:.35,sub:.6,gld:.04,arp:false,seq:true,bpm:145,dly:.3,rvb:.2},
+ "Dark Psy":{wave:1,cut:1200,res:.72,fe:.78,dec:.14,rel:.05,pmp:.42,sub:.7,gld:.05,arp:false,seq:true,bpm:160,dly:.35,rvb:.25},
+ "Goa Acid":{wave:0,cut:2200,res:.82,fe:.85,dec:.18,rel:.07,pmp:.25,sub:.5,gld:.03,arp:true,seq:false,bpm:142,arate:1,aoct:2,dly:.4,rvb:.3},
+ "Hi-Tech Arp":{wave:1,cut:3000,res:.6,fe:.6,dec:.12,rel:.04,pmp:.2,sub:.4,gld:.02,arp:true,seq:false,bpm:170,arate:2,aoct:3,dly:.45,rvb:.25},
+ "Prog Groove":{wave:0,cut:1500,res:.5,fe:.6,dec:.2,rel:.08,pmp:.3,sub:.6,gld:.04,arp:false,seq:true,bpm:138,dly:.3,rvb:.3},
+ "Psy-Organ":{wave:2,cut:2500,res:.3,fe:.4,dec:.3,rel:.2,pmp:.1,sub:.3,gld:.0,arp:false,seq:false,bpm:140,dly:.25,rvb:.45}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
-ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);$("bpm").value=P.bpm;syncDelay();stt("preset: "+ps.value);};
+ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);$("bpm").value=P.bpm;syncDelay();if(dWet)dWet.gain.value=P.dly*.5;if(rWet)rWet.gain.value=P.rvb*.5;stt("preset: "+ps.value);};
 function stt(s){$("stt").textContent=s;}
 </script>
 </body>
