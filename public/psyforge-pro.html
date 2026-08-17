@@ -104,6 +104,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
    <div class="k">Gate<div class="d gr" id="agate"></div><span class="v" id="vAg">55%</span></div>
    <div class="k">Ratchet<div class="d gr" id="rat"></div><span class="v" id="vRt">off</span></div>
    <div class="k">Mask<button class="btn" id="mask" style="padding:6px 10px">OFF</button></div>
+   <div class="k">Offbeat<button class="btn" id="off" style="padding:6px 10px">OFF</button></div>
    <div class="k">Swing<div class="d gr" id="swing"></div><span class="v" id="vSw">0%</span></div>
    <div class="k">Off<div class="d gr" id="offb"></div><span class="v" id="vOff">no</span></div>
   </div>
@@ -142,7 +143,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
 const $=i=>document.getElementById(i);
 const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:true,
  atk:.001,dec:.16,sus:.55,rel:.06,arp:false,seq:false,amode:0,arate:2,aoct:2,agate:.55,
- lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0,wk:false,scope:false,rat:0,mask:false,eng:0,wt:0,swing:0,off:0};
+ lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0,wk:false,scope:false,rat:0,mask:false,eng:0,wt:0,off:false,swing:0,off:0};
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const RATES=[{l:"1/2",m:2},{l:"1/4",m:1},{l:"1/8",m:.5},{l:"1/8.",m:.75},{l:"1/8T",m:1/3},{l:"1/16",m:.25},{l:"1/16.",m:.375},{l:"1/16T",m:1/6},{l:"1/32",m:.125}];
@@ -235,25 +236,24 @@ let _mw={};function morphWave(wt){const k=Math.round(wt*10);if(_mw[k])return _mw
 function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended")ctx.resume(); if(P.wk&&wkReady){wkNode.port.postMessage({t:"on",note:m,vel:vel||.8,wave:P.wave,fm:P.fm,ring:P.ring,uni:P.uni,spread:P.spread,penv:P.penv,ftype:P.ftype});return;}
  const t=when||ctx.currentTime;
  if(voices.has(m))kill(m,true); steal();
- const f=hz(m+(P.octave-3)*12);
+ const f=hz(m+(P.octave-3)*12); const prevF=v_last||f;
  const acc=P.acc&&vel>.7?1.45:1;
  const os=[]; const gs=[];
  const mk=(ty,fr,g)=>{const o=ctx.createOscillator();if(ty==="sine")o.type="sine";else o.setPeriodicWave(blWave(ty));o.frequency.setValueAtTime(fr,t);
-  if(P.gld>0&&v_last)o.frequency.setValueAtTime(v_last,t),o.frequency.linearRampToValueAtTime(fr,t+P.gld);
+  if(P.gld>0&&prevF&&prevF!==fr)o.frequency.setValueAtTime(prevF,t),o.frequency.linearRampToValueAtTime(fr,t+P.gld);
   const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);if(vibG)o.detune&&(vibG.connect(o.detune));o.start(t);os.push(o);gs.push(gg);return gg;};
- v_last=f;
- if(P.eng===1){ const car=ctx.createOscillator();car.type="sine";car.frequency.setValueAtTime(f,t);
+ if(P.eng===1){ const car=ctx.createOscillator();car.type="sine";car.frequency.setValueAtTime(f,t);if(P.gld>0&&prevF&&prevF!==f)car.frequency.setValueAtTime(prevF,t),car.frequency.linearRampToValueAtTime(f,t+P.gld);
   const mod=ctx.createOscillator();mod.frequency.value=f*2;const mg=ctx.createGain();mg.gain.value=f*(0.5+P.fm*2);
   mod.connect(mg);mg.connect(car.frequency);const gg=ctx.createGain();gg.gain.value=.6;car.connect(gg);car.start(t);mod.start(t);os.push(car,mod);gs.push(gg); }
  else if(P.eng===2){ const H=[1,2,3,4,6,8],L=[.9,.5,.35,.25,.15,.12];
   for(let i=0;i<H.length;i++){const o2=ctx.createOscillator();o2.type="sine";o2.frequency.value=f*H[i];const gg=ctx.createGain();gg.gain.value=L[i]*.5;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg);} }
  else if(P.eng===3){ const src=ctx.createBufferSource();src.buffer=noiseBuf();const gg=ctx.createGain();gg.gain.value=.7;src.connect(gg);src.start(t);os.push(src);gs.push(gg); }
- else if(P.eng===4){ const o2=ctx.createOscillator();o2.setPeriodicWave(morphWave(P.wt));o2.frequency.setValueAtTime(f,t);const gg=ctx.createGain();gg.gain.value=.6;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg); }
- else if(P.eng===5){ const o2=ctx.createOscillator();o2.setPeriodicWave(morphWave(0.2));o2.frequency.setValueAtTime(f,t); const f1=ctx.createBiquadFilter();f1.type="bandpass";f1.frequency.value=500+P.wt*400;f1.Q.value=8; const f2=ctx.createBiquadFilter();f2.type="bandpass";f2.frequency.value=1000+P.wt*900;f2.Q.value=10; const ga=ctx.createGain();ga.gain.value=.8; const gb=ctx.createGain();gb.gain.value=.5; o2.connect(f1);f1.connect(ga); o2.connect(f2);f2.connect(gb); o2.start(t); os.push(o2); gs.push(ga,gb); }
+ else if(P.eng===4){ const o2=ctx.createOscillator();o2.setPeriodicWave(morphWave(P.wt));o2.frequency.setValueAtTime(f,t);if(P.gld>0&&prevF&&prevF!==f)o2.frequency.setValueAtTime(prevF,t),o2.frequency.linearRampToValueAtTime(f,t+P.gld);const gg=ctx.createGain();gg.gain.value=.6;o2.connect(gg);o2.start(t);os.push(o2);gs.push(gg); }
+ else if(P.eng===5){ const o2=ctx.createOscillator();o2.setPeriodicWave(morphWave(0.2));o2.frequency.setValueAtTime(f,t);if(P.gld>0&&prevF&&prevF!==f)o2.frequency.setValueAtTime(prevF,t),o2.frequency.linearRampToValueAtTime(f,t+P.gld); const f1=ctx.createBiquadFilter();f1.type="bandpass";f1.frequency.value=500+P.wt*400;f1.Q.value=8; const f2=ctx.createBiquadFilter();f2.type="bandpass";f2.frequency.value=1000+P.wt*900;f2.Q.value=10; const ga=ctx.createGain();ga.gain.value=.8; const gb=ctx.createGain();gb.gain.value=.5; o2.connect(f1);f1.connect(ga); o2.connect(f2);f2.connect(gb); o2.start(t); os.push(o2); gs.push(ga,gb); }
  else { const g1=mk(WAV[P.wave],f,.5);
   const g2=(P.det>1||P.uni>1)?mk(WAV[P.wave],f*Math.pow(2,P.det/1200),.35):null;
-  const g3=P.sub>0.05?mk("sine",f/2,P.sub*.5):null;
   for(let u=1;u<P.uni;u++){ const off=(u%2===1?1:-1)*Math.ceil(u/2)*P.spread; mk(WAV[P.wave], f*Math.pow(2,off/1200), .4/P.uni); } }
+ v_last=f; if(P.sub>0.05){ const so=ctx.createOscillator();so.type="sine";so.frequency.value=f/2; const sg=ctx.createGain();sg.gain.value=P.sub*.5;so.connect(sg);so.start(t);os.push(so);gs.push(sg); }
  if(P.eng===0&&P.fm>0.02&&os[0]){ const mo=ctx.createOscillator(); mo.frequency.value=f*2; const mg=ctx.createGain(); mg.gain.value=P.fm*f*1.5; mo.connect(mg); mg.connect(os[0].frequency); mo.start(t); os.push(mo); }
  if(P.eng===0&&P.penv>0.02&&P.gld<=0){ const pf=Math.pow(2,P.penv); os.forEach((o,idx)=>{ const tgt=o.frequency.value; o.frequency.setValueAtTime(tgt*pf,t); o.frequency.exponentialRampToValueAtTime(tgt,t+0.07); }); }
  const sum=ctx.createGain(); gs.forEach(g=>{if(g)g.connect(sum);});
@@ -387,6 +387,7 @@ knob("agate",v=>{P.agate=.2+v*.7;$("vAg").textContent=Math.round(v*100)+"%";});
 knob("swing",v=>{P.swing=v*.6;$("vSw").textContent=Math.round(v*100)+"%";});
 knob("rat",v=>{P.rat=Math.round(v*2);$("vRt").textContent=["off","x2","x4"][P.rat];});
 $("mask").onclick=()=>{P.mask=!P.mask;$("mask").textContent=P.mask?"ON":"OFF";$("mask").classList.toggle("on",P.mask);};
+$("off").onclick=()=>{P.off=!P.off;$("off").textContent=P.off?"ON":"OFF";$("off").classList.toggle("on",P.off);};
 
 knob("offb",v=>{P.off=v>.5?1:0;$("vOff").textContent=P.off?"yes":"no";});
 knob("lfo",v=>{P.lfo=v;$("vL").textContent=Math.round(v*100)+"%";if(lfoG)lfoG.gain.value=v*1200+modw*600;if(vibG)vibG.gain.value=v*40+modw*30;});
@@ -397,20 +398,21 @@ knob("rvb",v=>{P.rvb=v;if(rWet)rWet.gain.value=v*.5;});
 knob("fm",v=>{P.fm=v;$("vFm").textContent=Math.round(v*100)+"%";});
 knob("uni",v=>{P.uni=1+Math.round(v*(ISMOB?1:2));$("vU").textContent=P.uni;});
 knob("spr",v=>{P.spread=v*30;$("vSp").textContent=Math.round(P.spread)+"ct";});
-knob("eng",v=>{P.eng=Math.round(v*5);$("vEn").textContent=["SUB","FM","ORG","NSE","WT","VOW"][P.eng];});
+knob("eng",v=>{P.eng=Math.round(v*5);$("vEn").textContent=["SUB","FM","ORG","NSE","WT","VOW"][P.eng];updateEngUI();});
 knob("wt",v=>{P.wt=v;$("vWt").textContent=Math.round(v*100)+"%";});
 knob("dfb",v=>{P.dfb=v*.9;if(fbG)fbG.gain.value=v*.9;});
 knob("ftype",v=>{P.ftype=Math.round(v*3);$("vFt").textContent=["LP","HP","BP","NT"][P.ftype];});
 knob("ring",v=>{P.ring=v;$("vRg").textContent=Math.round(v*100)+"%";});
 knob("crush",v=>{P.crush=v;if(drv)drv.curve=dcCurve(P.drv,v);$("vCr").textContent=Math.round(v*100)+"%";});
 knob("penv",v=>{P.penv=v*12;$("vPe").textContent=Math.round(P.penv);});
+function updateEngUI(){ ["wave","det","uni","spr"].forEach(id=>{const el=$(id); if(el&&el.parentElement)el.parentElement.style.opacity=(P.eng===0?"1":"0.35");}); }
 function setK(id,v){const el=$(id);if(el)el.style.setProperty("--r",(Math.max(0,Math.min(1,v))*240-120)+"deg");}
 function syncKnobs(){ setK("wave",P.wave/2);setK("det",P.det/30);setK("sub",P.sub);setK("gld",P.gld/.12);setK("pmp",P.pmp);
  setK("fm",P.fm);setK("uni",(P.uni-1)/2);setK("spr",P.spread/30);setK("cut",Math.log2(Math.max(80,P.cut)/80)/8);setK("res",P.res);
  setK("fe",P.fe);setK("ftype",P.ftype/3);setK("ring",P.ring);setK("crush",P.crush);setK("penv",P.penv/12);
  setK("atk",(P.atk-.0005)/.03);setK("dec",(P.dec-.02)/.5);setK("sus",P.sus);setK("rel",(P.rel-.02)/.5);
  setK("amode",P.amode/3);setK("arate",P.arate/3);setK("aoct",(P.aoct-1)/3);setK("agate",(P.agate-.2)/.7);
- setK("lfo",P.lfo);setK("lfr",Math.max(0,[1,2,4,8].indexOf(P.lfr))/3);setK("drv",P.drv);setK("dly",P.dly);setK("rvb",P.rvb);setK("dfb",P.dfb/.9); }
+ setK("lfo",P.lfo);setK("lfr",Math.max(0,[1,2,4,8].indexOf(P.lfr))/3);setK("drv",P.drv);setK("dly",P.dly);setK("rvb",P.rvb);setK("dfb",P.dfb/.9); updateEngUI(); }
 /* wheels */
 function wheel(id,fn){const el=$(id);let sy=0,v=.5;
  el.addEventListener("pointerdown",e=>{e.preventDefault();el.setPointerCapture(e.pointerId);sy=e.clientY;
