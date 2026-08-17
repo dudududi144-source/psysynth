@@ -426,7 +426,7 @@ const PRESETS={
  "Zenith Pad":{wave:2,cut:1800,res:.35,fe:.35,dec:.5,rel:.4,pmp:.1,sub:.3,gld:.0,arp:false,seq:false,bpm:140,dly:.3,rvb:.5}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
 ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);$("bpm").value=P.bpm;syncDelay();if(dWet)dWet.gain.value=P.dly*.5;if(rWet)rWet.gain.value=P.rvb*.5;stt("preset: "+ps.value);};
-ps.value=Object.keys(PRESETS)[0]; Object.assign(P,PRESETS[ps.value]); $("bpm").value=P.bpm;
+ps.value=Object.keys(PRESETS)[0]; Object.assign(P,PRESETS[ps.value]); $("bpm").value=P.bpm; P.arp=false;P.seq=false;$("arpBtn").classList.remove("on");$("seqBtn").classList.remove("on");
 function stt(s){$("stt").textContent=s;}
 </script>
 </body>
