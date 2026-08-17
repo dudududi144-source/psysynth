@@ -214,7 +214,7 @@ function ensure(){ if(ctx)return true;
  drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
  comp=ctx.createWaveShaper();comp.curve=limCurve();
  master.connect(pumpG);pumpG.connect(drv);drv.curve=dcCurve(P.drv,P.crush);drv.connect(comp);const mkup=ctx.createGain();mkup.gain.value=2.4;comp.connect(mkup);mkup.connect(ctx.destination);
- ana=ctx.createAnalyser();ana.fftSize=512;comp.connect(ana);scopeLoop();
+
  if(ctx.audioWorklet){const blob=new Blob([WK_SRC],{type:"application/javascript"});ctx.audioWorklet.addModule(URL.createObjectURL(blob)).then(()=>{wkNode=new AudioWorkletNode(ctx,"psy-engine");wkNode.connect(master);wkReady=true;sendPar();}).catch(()=>{});}
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
@@ -311,16 +311,6 @@ function arpNote(){ const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return 
   const oct=Math.floor((arpIdx%(arr.length*octs))/arr.length);
   arpIdx++; return arr[idx]+12*oct; }
 function highlight(s){ document.querySelectorAll(".st").forEach((e,i)=>e.classList.toggle("on",i===s)); }
-let scopeBuf=null,scopeC=null,scopeX=null,scopeFrame=0;
-function scopeLoop(){ requestAnimationFrame(scopeLoop); if(!ctx||!ana)return;
- if(ctx.state!=="running"||!P.scope)return; scopeFrame++; if(scopeFrame%(ISMOB?3:2)!==0)return; // throttle: draw every 2nd frame (save CPU)
- if(!scopeBuf||scopeBuf.length!==ana.fftSize)scopeBuf=new Uint8Array(ana.fftSize); // alloc once
- ana.getByteTimeDomainData(scopeBuf);
- const c=document.getElementById("scope"); if(!c)return;
- if(scopeC!==c){scopeC=c;scopeX=c.getContext("2d");}
- if(c.width!==c.clientWidth*2){c.width=c.clientWidth*2;c.height=c.clientHeight*2;}
- const x=scopeX; x.clearRect(0,0,c.width,c.height); x.strokeStyle="#c93df0"; x.lineWidth=2; x.beginPath();
- for(let i=0;i<scopeBuf.length;i+=4){ const y=(scopeBuf[i]/255)*c.height; x.lineTo(i/scopeBuf.length*c.width,y);} x.stroke(); }
 function sendPar(){ if(wkNode)wkNode.port.postMessage({t:"par",p:{cut:P.cut,res:P.res,atk:P.atk,dec:P.dec,sus:P.sus,rel:P.rel,glide:P.gld,wave:P.wave,fm:P.fm,ring:P.ring,uni:P.uni,spread:P.spread,penv:P.penv,ftype:P.ftype}}); }
 let selfTested=false;
 async function measureWith(an){ noteOn(45,.9); let peak=0; const t0=performance.now();
