@@ -131,7 +131,7 @@ const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[8,16,32];
-let ctx=null,master,drv,comp,del,dWet,rev,rWet,lfo,lfoG;
+let ctx=null,master,pumpG,drv,comp,del,dWet,rev,rWet,lfo,lfoG;
 const held=new Set(); const voices=new Map(); const POLY=14;
 let step=0, nextT=0, schedTimer=null, lastClk=0;
 const seqPat=[1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0]; const seqAcc=[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0];
@@ -140,9 +140,10 @@ function hz(m){return 440*Math.pow(2,(m-69)/12);}
 function ensure(){ if(ctx)return true;
  try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){stt("no audio: "+e.message);return false;}
  master=ctx.createGain();master.gain.value=.7;
+ pumpG=ctx.createGain();pumpG.gain.value=1;
  drv=ctx.createWaveShaper();drv.curve=curve(P.drv);
  comp=ctx.createDynamicsCompressor();
- master.connect(drv);drv.connect(comp);comp.connect(ctx.destination);
+ master.connect(pumpG);pumpG.connect(drv);drv.connect(comp);comp.connect(ctx.destination);
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=.4;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
  rev=ctx.createConvolver();rev.buffer=ir(2,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);
@@ -170,7 +171,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  const g3=mk("sine",f/2,P.sub*.5);
  const sum=ctx.createGain(); gs.forEach(g=>g.connect(sum));
  const fl=ctx.createBiquadFilter();fl.type="lowpass";
- const base=P.cut*(1+(m-48)/96);
+ const base=P.cut*Math.max(.5,Math.min(2,(1+(m-48)/96)));
  fl.frequency.setValueAtTime(base,t);
  fl.frequency.linearRampToValueAtTime(Math.min(14000,base+P.fe*7000*acc),t+P.atk+.005);
  fl.frequency.setTargetAtTime(base,t+P.atk,P.dec/3);
@@ -184,43 +185,35 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  a.gain.linearRampToValueAtTime(pk,t+Math.max(.0008,P.atk));
  if(gate>0){ a.gain.setTargetAtTime(0,t+gate,P.rel/4); }
  else { a.gain.setTargetAtTime(pk*P.sus,t+Math.max(.0008,P.atk),P.dec/3); }
- // pump (sidechain-like dip on each beat)
- if(P.pmp>0){ const beat=60/P.bpm; for(let b=t;b<t+(gate||.3)+.1;b+=beat){ a.gain.setTargetAtTime(pk*.4,b,.02); a.gain.setTargetAtTime(pk,b+.05,.03);} }
  voices.set(m,{o:os,a,t});
 }
 let v_last=0, modw=0, bend=0;
 function noteOff(m,when){ const t=when||ctx.currentTime; kill(m,false); }
 /* ---- master clock scheduler (arp + seq) ---- */
-function startClock(){ if(schedTimer)return; nextT=ctx.currentTime+.06; step=0;
- schedTimer=setInterval(()=>{ if(!ctx)return; const ahead=ctx.currentTime+.12;
-  while(nextT<ahead){ scheduleStep(nextT); nextT+= (60/P.bpm)/ (ARATES[P.arate]/16) * (16/ARATES[P.arate]) * (ARATES[P.arate]/16); nextT+=0; nextT=nextT; nextT += (60/P.bpm)*(16/ARATES[P.arate])/16* (ARATES[P.arate]/16); // keep simple below
-   break; } },25); }
-/* simpler: schedule per 16th or per arp rate */
 function stopClock(){ if(schedTimer){clearInterval(schedTimer);schedTimer=null;} }
-let clkPhase=0;
-function startClock2(){ if(schedTimer)return; nextT=ctx.currentTime+.06; step=0;
- const stepDur=()=> (60/P.bpm)/4; // 16th
- schedTimer=setInterval(()=>{ if(!ctx)return; const ahead=ctx.currentTime+.12;
-  while(nextT<ahead){ tick(nextT); nextT+=stepDur(); } },25); }
-function tick(t){ // one 16th
- lastClk++; $("clk").classList.toggle("on", (lastClk%4)===0);
- $("stl").classList.toggle("on", true);
- // step seq (bass) on 16ths
- if(P.seq){ const s=step%16; highlight(s);
-   if(seqPat[s]) noteOn(36+seqNote[s]+(P.octave-3)*12, seqAcc[s]?.95:.8, t, stepDur()*.5); }
- // arp on held notes at chosen rate
- if(P.arp && held.size){ const rateDiv=ARATES[P.arate]/16; if((step%rateDiv)===0){ const n=arpNote(); if(n!=null) noteOn(n,.8,t,stepDur()*P.agate* (16/ARATES[P.arate]) ); } }
- step++;
+let tickCount=0;
+function startClock(){ if(schedTimer)return; nextT=ctx.currentTime+.06; tickCount=0;
+  const t32=()=> (60/P.bpm)/8; // 32nd-note grid = finest resolution
+  schedTimer=setInterval(()=>{ if(!ctx)return; const ahead=ctx.currentTime+.12;
+    while(nextT<ahead){ tick32(nextT); nextT+=t32(); } },25); }
+function tick32(t){
+  tickCount++;
+  $("clk").classList.toggle("on", tickCount%8===0); // beat LED (8x32nd)
+ if(tickCount%8===0&&pumpG&&P.pmp>0){ pumpG.gain.cancelScheduledValues(t); pumpG.gain.setValueAtTime(1-P.pmp*.6,t); pumpG.gain.setTargetAtTime(1,t+.03,.07); }
+  if(P.seq && tickCount%2===0){ const s=(tickCount/2)%16; highlight(s);
+    if(seqPat[s]) noteOn(36+seqNote[s]+(P.octave-3)*12, seqAcc[s]?0.95:0.8, t, (60/P.bpm)/4*0.5); }
+  if(P.arp && held.size){ const div=[4,2,1][P.arate]; if(tickCount%div===0){ const n=arpNote();
+    if(n!=null) noteOn(n,0.8,t,(60/P.bpm)/(ARATES[P.arate]/4)*P.agate); } }
 }
 function stepDur(){return (60/P.bpm)/4;}
-let arpIdx=0, arpDir=1;
+let arpIdx=0;
 function arpNote(){ const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return null;
- const octs=P.aoct; let idx;
- switch(P.amode){case 0: idx=arpIdx%arr.length; break; case 1: idx=(arr.length-1)-(arpIdx%arr.length); break;
-  case 2: idx=arpIdx%(2*arr.length); idx=idx<arr.length?idx:(2*arr.length-1-idx); break;
-  default: idx=Math.floor(Math.random()*arr.length);}
- const oct=Math.floor((arpIdx%(arr.length*octs))/arr.length);
- arpIdx++; return arr[idx]+12*oct; }
+  const octs=P.aoct; let idx;
+  switch(P.amode){case 0: idx=arpIdx%arr.length; break; case 1: idx=(arr.length-1)-(arpIdx%arr.length); break;
+   case 2:{const m2=2*arr.length; let x=arpIdx%m2; idx=x<arr.length?x:(m2-1-x);} break;
+   default: idx=Math.floor(Math.random()*arr.length);}
+  const oct=Math.floor((arpIdx%(arr.length*octs))/arr.length);
+  arpIdx++; return arr[idx]+12*oct; }
 function highlight(s){ document.querySelectorAll(".st").forEach((e,i)=>e.classList.toggle("on",i===s)); }
 /* PsyDevice contract */
 window.PsyForgeDevice={ id:"psyforge-pro-x",
@@ -234,7 +227,7 @@ window.addEventListener("message",e=>{const d=e.data;if(!d||d.type!=="psy")retur
 /* MIDI */
 if(navigator.requestMIDIAccess){navigator.requestMIDIAccess().then(ma=>{
  const hook=()=>ma.inputs.forEach(i=>i.onmidimessage=e=>{const[s,d1,d2]=e.data;const c=s&0xf0;
-  if(c===0x90&&d2>0){held.add(d1);noteOn(d1,d2/127);} else if(c===0x80||(c===0x90&&d2===0)){held.delete(d1);noteOff(d1);}
+  if(c===0x90&&d2>0){held.add(d1);if(!P.arp)noteOn(d1,d2/127);if(P.arp||P.seq){ensure();ctx.resume();startClock();}} else if(c===0x80||(c===0x90&&d2===0)){held.delete(d1);if(!P.arp)noteOff(d1);}
   else if(c===0xE0)bend=((d2*128+d1)-8192)/8192*2;
   else if(c===0xB0&&d1===1)modw=d2/127;
   else if(c===0xB0&&d1===74)P.cut=60*Math.pow(2,(d2/127)*8);
@@ -246,8 +239,8 @@ for(let i=0;i<14;i++){ if(!BL.includes(i%12)){const k=document.createElement("di
 function layout(){ blacks.forEach(b=>b[0].remove()); blacks=[]; const ww=whites[0][0].getBoundingClientRect().width; let wi=0;
  for(let i=0;i<14;i++){ if(BL.includes(i%12)){ const b=document.createElement("div");b.className="key b";b.style.left=(wi*ww-ww*.31)+"px";b.style.width=(ww*.62)+"px";kbd.appendChild(b);blacks.push([b,i]);bind(b,i);} else wi++; } }
 function bind(el,i){ const midi=()=>36+i+(P.octave-3)*12;
- el.addEventListener("pointerdown",e=>{e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add("on");held.add(midi());noteOn(midi(),.8);if(P.arp||P.seq){ensure();ctx.resume();startClock2();}});
- const up=()=>{el.classList.remove("on");held.delete(midi());noteOff(midi());};
+ el.addEventListener("pointerdown",e=>{e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add("on");held.add(midi());if(!P.arp)noteOn(midi(),.8);if(P.arp||P.seq){ensure();ctx.resume();startClock();}});
+ const up=()=>{el.classList.remove("on");held.delete(midi());if(!P.arp)noteOff(midi());};
  el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up);}
 whites.forEach(([k,i])=>bind(k,i)); layout(); addEventListener("resize",layout);
 /* seq UI */
@@ -290,8 +283,8 @@ wheel("pitch",v=>{bend=(v-.5)*4;});
 wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*500+v*400;});
 /* buttons */
 $("pw").onclick=()=>{ if(ensure()){ctx.resume();$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ");} };
-$("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(P.arp&&ctx)startClock2();};
-$("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(P.seq&&ctx)startClock2();};
+$("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(P.arp&&ctx)startClock();};
+$("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(P.seq&&ctx)startClock();};
 $("bpm").onchange=e=>{P.bpm=+e.target.value||145;syncDelay();};
 $("oU").onclick=()=>{P.octave=Math.min(6,P.octave+1);layout();};
 $("oD").onclick=()=>{P.octave=Math.max(1,P.octave-1);layout();};
