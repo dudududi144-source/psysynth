@@ -106,7 +106,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
    <div class="k">Mask<button class="btn" id="mask" style="padding:6px 10px">OFF</button></div>
    <div class="k">Offbeat<button class="btn" id="off" style="padding:6px 10px">OFF</button></div>
    <div class="k">Swing<div class="d gr" id="swing"></div><span class="v" id="vSw">0%</span></div>
-   <div class="k">Off<div class="d gr" id="offb"></div><span class="v" id="vOff">no</span></div>
+   
   </div>
   <select class="sel" id="pat" style="margin:6px 0;width:100%"></select>
   <div class="seq" id="seq" style="margin-top:4px"></div>
@@ -389,7 +389,7 @@ knob("rat",v=>{P.rat=Math.round(v*2);$("vRt").textContent=["off","x2","x4"][P.ra
 $("mask").onclick=()=>{P.mask=!P.mask;$("mask").textContent=P.mask?"ON":"OFF";$("mask").classList.toggle("on",P.mask);};
 $("off").onclick=()=>{P.off=!P.off;$("off").textContent=P.off?"ON":"OFF";$("off").classList.toggle("on",P.off);};
 
-knob("offb",v=>{P.off=v>.5?1:0;$("vOff").textContent=P.off?"yes":"no";});
+
 knob("lfo",v=>{P.lfo=v;$("vL").textContent=Math.round(v*100)+"%";if(lfoG)lfoG.gain.value=v*1200+modw*600;if(vibG)vibG.gain.value=v*40+modw*30;});
 knob("lfr",v=>{P.lfr=[1,2,4,8][Math.round(v*3)];$("vLr").textContent="1/"+[4,8,16,32][Math.round(v*3)];syncDelay();});
 knob("drv",v=>{P.drv=v;if(drv)drv.curve=dcCurve(v,P.crush);});
@@ -422,7 +422,7 @@ function wheel(id,fn){const el=$(id);let sy=0,v=.5;
 wheel("pitch",v=>{bend=(v-.5)*4;});
 wheel("modw",v=>{modw=v;if(lfoG)lfoG.gain.value=P.lfo*1200+v*600;if(vibG)vibG.gain.value=P.lfo*40+v*30;});
 /* buttons */
-$("pw").onclick=()=>{ if(!powered){ if(ensure()){ctx.resume();powered=true;$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ"); runSelfTest();} }
+$("pw").onclick=()=>{ if(!powered){ if(ensure()){ctx.resume();powered=true;$("pw").classList.add("on");$("pw").textContent="ON";syncDelay();stt("powered - play / ARP / SEQ"); if(P.arp)startArpClock(); if(P.seq)startClock(); runSelfTest();} }
  else { powered=false;[...voices.keys()].forEach(m=>kill(m,true));stopClock();held.clear();ctx.suspend();$("pw").classList.remove("on");$("pw").textContent="POWER";stt("off - battery safe"); } };
 $("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(ctx){if(P.arp)startArpClock();else stopArpClock();}};
 $("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(ctx){if(P.seq)startClock();else stopClock();}};
