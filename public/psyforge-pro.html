@@ -58,7 +58,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
  <div class="sp"></div>
  <button class="btn" id="arpBtn">ARP</button>
  <button class="btn" id="seqBtn">SEQ</button>
- <button class="btn" id="wk">WK</button><button class="btn" id="scopeBtn">SCOPE</button><button class="btn" id="test">TEST</button><button class="btn" id="save">SAVE</button><button class="btn pw" id="pw">POWER</button>
+ <button class="btn" id="save">SAVE</button><button class="btn pw" id="pw">POWER</button>
 </div>
 
 <div class="g g3">
@@ -104,7 +104,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
   <select class="sel" id="pat" style="margin:6px 0;width:100%"></select>
   <div class="seq" id="seq" style="margin-top:4px"></div>
   <div class="ledrow" style="margin-top:6px"><div class="led" id="clk"></div> clock <div class="led" id="stl"></div> step</div></div>
- <div class="m"><h4>MOD MATRIX (live)</h4><canvas id="scope" style="width:100%;height:44px;background:#0d0819;border:1px solid var(--ln);border-radius:6px;margin-bottom:6px"></canvas>
+ <div class="m"><h4>MOD MATRIX (live)</h4>
   <div class="ledrow">Vel &rarr; Cutoff <div class="led on"></div></div>
   <div class="ledrow">LFO(sync) &rarr; Pitch <div class="led on"></div></div>
   <div class="ledrow">ModWheel &rarr; LFO amt <div class="led on"></div></div>
@@ -140,7 +140,7 @@ const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[4,8,16,32];
-let ctx=null,master,pumpG,pumpLfo,pumpLfoG,drv,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,powered=false,wkNode=null,wkReady=false;
+let ctx=null,master,pumpG,pumpLfo,pumpLfoG,drv,comp,ana,del,fbG,dWet,rev,rWet,lfo,lfoG,vibG,powered=false,wkNode=null,wkReady=false;
 const held=new Set(); const voices=new Map(); const ISMOB=("ontouchstart" in window)||innerWidth<820; const POLY=ISMOB?8:14;
 function effPoly(){ const load=1+(P.uni-1)+(P.fm>0.02?1:0)+(P.ring>0.02?1:0); return Math.max(3,Math.round(POLY/Math.sqrt(load))); }
 let step=0, nextT=0, schedTimer=null, lastClk=0;
@@ -211,7 +211,7 @@ function ensure(){ if(ctx)return true;
  del=ctx.createDelay(1);const fb=ctx.createGain();fb.gain.value=P.dfb;fbG=fb;dWet=ctx.createGain();dWet.gain.value=P.dly*.5;
  del.connect(fb);fb.connect(del);del.connect(dWet);dWet.connect(master);
  if(!ISMOB){rev=ctx.createConvolver();rev.buffer=ir(1.5,2.5);rWet=ctx.createGain();rWet.gain.value=P.rvb*.5;rev.connect(rWet);rWet.connect(master);}
- lfo=ctx.createOscillator();lfo.frequency.value=P.bpm/60*P.lfr;lfoG=ctx.createGain();lfoG.gain.value=0;lfo.connect(lfoG);lfo.start();
+ lfo=ctx.createOscillator();lfo.frequency.value=P.bpm/60*P.lfr;lfoG=ctx.createGain();lfoG.gain.value=0;lfo.connect(lfoG);vibG=ctx.createGain();vibG.gain.value=P.lfo*40;lfo.connect(vibG);lfo.start();
  syncDelay(); return true;}
 function curve(a){const n=256,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*(1+a*7));}return c;}
 function crushCurve(a){ const n=512,c=new Float32Array(n); const steps=Math.max(8,Math.round(256*Math.pow(2,-a*5))); for(let i=0;i<n;i++){const x=i/(n-1)*2-1; c[i]=Math.round(x*steps)/steps;} return c; }
@@ -231,7 +231,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  const os=[]; const gs=[];
  const mk=(ty,fr,g)=>{const o=ctx.createOscillator();if(ty==="sine")o.type="sine";else o.setPeriodicWave(blWave(ty));o.frequency.setValueAtTime(fr,t);
   if(P.gld>0&&v_last)o.frequency.setValueAtTime(v_last,t),o.frequency.linearRampToValueAtTime(fr,t+P.gld);
-  const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);o.start(t);os.push(o);gs.push(gg);return gg;};
+  const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);if(vibG)o.detune&&(vibG.connect(o.detune));o.start(t);os.push(o);gs.push(gg);return gg;};
  v_last=f;
  const g1=mk(WAV[P.wave],f,.5);
  const g2=(P.det>1||P.uni>1)?mk(WAV[P.wave],f*Math.pow(2,P.det/1200),.35):null;
@@ -243,7 +243,7 @@ function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended"
  let ringOut=null;
  if(P.ring>0.02){ const ro=ctx.createOscillator(); ro.frequency.value=f*1.5; const rg=ctx.createGain(); rg.gain.value=0; const rm=ctx.createGain(); rm.gain.value=P.ring*.6; ro.connect(rg.gain); sum.connect(rg); rg.connect(rm); ringOut=rm; ro.start(t); os.push(ro); }
  const fl=ctx.createBiquadFilter();fl.type=["lowpass","highpass","bandpass","notch"][P.ftype];
- const base=P.cut*Math.max(.5,Math.min(2,(1+(m-48)/96)));
+ const base=P.cut*Math.max(.5,Math.min(2,(1+(m-48)/96)))*(1+(((vel||.8)-.6)*.6));
  fl.frequency.setValueAtTime(base,t);
  fl.frequency.linearRampToValueAtTime(Math.min(14000,base+P.fe*7000*acc),t+P.atk+.005);
  fl.frequency.setTargetAtTime(base,t+P.atk,P.dec/3);
@@ -378,7 +378,7 @@ $("pw").onclick=()=>{ if(!powered){ if(ensure()){ctx.resume();powered=true;$("pw
 $("arpBtn").onclick=()=>{P.arp=!P.arp;$("arpBtn").classList.toggle("on",P.arp);if(ctx){if(P.arp||P.seq)startClock();else stopClock();}};
 $("seqBtn").onclick=()=>{P.seq=!P.seq;$("seqBtn").classList.toggle("on",P.seq);if(ctx){if(P.arp||P.seq)startClock();else stopClock();}};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-$("test").onclick=async()=>{ if(!powered)$("pw").click(); await sleep(150);
+if($("test"))$("test").onclick=async()=>{ if(!powered)$("pw").click(); await sleep(150);
  let peak=await measure(); let eng=(P.wk&&wkReady)?"WK":"NODE";
  if(peak<=0.02 && P.wk&&wkReady){ P.wk=false; await sleep(100); peak=await measure(); eng="NODE(fallback)"; }
  const pass=peak>0.02; $("test").textContent=pass?"PASS":"FAIL";
@@ -388,8 +388,8 @@ async function measure(){ noteOn(45,.9); let peak=0; const t0=performance.now();
  while(performance.now()-t0<400){ const d=new Uint8Array(ana.fftSize); ana.getByteTimeDomainData(d);
   for(let k=0;k<d.length;k+=4){const v=Math.abs(d[k]-128)/128; if(v>peak)peak=v;} await sleep(30);} noteOff(45); return peak; }
 $("save").onclick=()=>{ try{ localStorage.setItem("psyforge-preset",JSON.stringify(P)); stt("preset saved (localStorage)"); }catch(e){ stt("save failed"); } };
-$("wk").onclick=()=>{P.wk=!P.wk;$("wk").classList.toggle("on",P.wk);if(P.wk&&!powered)$("pw").click();sendPar();stt(P.wk?"PRO engine: AudioWorklet 16-voice single-node":"node engine");};
-$("scopeBtn").onclick=()=>{P.scope=!P.scope;$("scopeBtn").classList.toggle("on",P.scope);stt(P.scope?"scope on":"scope off (save CPU)");};
+if($("wk"))$("wk").onclick=()=>{P.wk=!P.wk;$("wk").classList.toggle("on",P.wk);if(P.wk&&!powered)$("pw").click();sendPar();stt(P.wk?"PRO engine: AudioWorklet 16-voice single-node":"node engine");};
+if($("scopeBtn"))$("scopeBtn").onclick=()=>{P.scope=!P.scope;$("scopeBtn").classList.toggle("on",P.scope);stt(P.scope?"scope on":"scope off (save CPU)");};
 try{ const sv=localStorage.getItem("psyforge-preset"); if(sv)Object.assign(P,JSON.parse(sv)); }catch(e){}
 document.addEventListener("visibilitychange",()=>{ if(!ctx)return; if(document.hidden){ctx.suspend();} else if(powered){ctx.resume();} });
 $("bpm").onchange=e=>{P.bpm=Math.max(60,Math.min(200,+e.target.value||145));e.target.value=P.bpm;syncDelay();};
@@ -412,18 +412,18 @@ patSel.onchange=()=>{const p=PATTERNS[patSel.value]; for(let i=0;i<16;i++){seqPa
  if(ctx&&(P.arp||P.seq))startClock(); stt("pattern: "+patSel.value); };
 /* presets */
 const PRESETS={
- "Full-On Rolling":{wave:0,cut:1800,res:.65,fe:.7,dec:.16,rel:.06,pmp:.35,sub:.6,gld:.04,arp:false,seq:true,bpm:145,dly:.3,rvb:.2},
- "Dark Psy":{wave:1,cut:1200,res:.72,fe:.78,dec:.14,rel:.05,pmp:.42,sub:.7,gld:.05,arp:false,seq:true,bpm:160,dly:.35,rvb:.25},
- "Goa Acid":{wave:0,cut:2200,res:.82,fe:.85,dec:.18,rel:.07,pmp:.25,sub:.5,gld:.03,arp:true,seq:false,bpm:142,arate:1,aoct:2,dly:.4,rvb:.3},
- "Hi-Tech Arp":{wave:1,cut:3000,res:.6,fe:.6,dec:.12,rel:.04,pmp:.2,sub:.4,gld:.02,arp:true,seq:false,bpm:170,arate:2,aoct:3,dly:.45,rvb:.25},
- "Prog Groove":{wave:0,cut:1500,res:.5,fe:.6,dec:.2,rel:.08,pmp:.3,sub:.6,gld:.04,arp:false,seq:true,bpm:138,dly:.3,rvb:.3},
- "Psy-Organ":{wave:2,cut:2500,res:.3,fe:.4,dec:.3,rel:.2,pmp:.1,sub:.3,gld:.0,arp:false,seq:false,bpm:140,dly:.25,rvb:.45},
- "Twilight Arp":{wave:2,cut:2800,res:.5,fe:.5,dec:.15,rel:.05,pmp:.2,sub:.4,gld:.02,arp:true,seq:false,bpm:148,arate:1,aoct:2,dly:.4,rvb:.35},
- "Forest Pluck":{wave:0,cut:2000,res:.7,fe:.8,dec:.1,rel:.04,pmp:.2,sub:.4,gld:.02,arp:true,seq:false,bpm:140,arate:2,aoct:2,dly:.35,rvb:.3},
- "Nightmare Bass":{wave:1,cut:900,res:.8,fe:.85,dec:.12,rel:.05,pmp:.45,sub:.8,gld:.06,arp:false,seq:true,bpm:165,dly:.3,rvb:.2},
- "Euphoria Lead":{wave:0,cut:3200,res:.55,fe:.6,dec:.2,rel:.1,pmp:.15,sub:.4,gld:.03,arp:false,seq:false,bpm:145,dly:.5,rvb:.4},
- "Shamanic Stab":{wave:1,cut:1600,res:.65,fe:.7,dec:.25,rel:.15,pmp:.2,sub:.5,gld:.0,arp:false,seq:false,bpm:142,dly:.3,rvb:.35},
- "Zenith Pad":{wave:2,cut:1800,res:.35,fe:.35,dec:.5,rel:.4,pmp:.1,sub:.3,gld:.0,arp:false,seq:false,bpm:140,dly:.3,rvb:.5}};
+ "Full-On Rolling":{wave:0,cut:1800,res:.6,fe:.7,dec:.15,rel:.06,pmp:.4,sub:.6,gld:.05,seq:true,arp:false,bpm:145,dly:.3,rvb:.15},
+ "Dark Psy":{wave:1,cut:1100,res:.72,fe:.8,dec:.13,rel:.05,pmp:.45,sub:.7,gld:.06,seq:true,arp:false,bpm:160,dly:.3,rvb:.2},
+ "Goa Acid":{wave:0,cut:2200,res:.85,fe:.9,dec:.18,rel:.07,pmp:.25,sub:.5,gld:.03,seq:false,arp:true,arate:1,aoct:2,bpm:142,dly:.4,rvb:.3},
+ "Hi-Tech Arp":{wave:1,cut:3000,res:.6,fe:.6,dec:.1,rel:.04,pmp:.2,sub:.4,gld:.02,seq:false,arp:true,arate:2,aoct:3,bpm:170,dly:.45,rvb:.25},
+ "Prog Groove":{wave:0,cut:1500,res:.5,fe:.6,dec:.2,rel:.08,pmp:.3,sub:.6,gld:.04,seq:true,arp:false,bpm:138,dly:.3,rvb:.3},
+ "Psy-Organ":{wave:2,cut:2500,res:.3,fe:.4,dec:.3,rel:.2,pmp:.1,sub:.3,gld:0,seq:false,arp:false,bpm:140,dly:.25,rvb:.45},
+ "Twilight Arp":{wave:2,cut:2800,res:.5,fe:.5,dec:.15,rel:.05,pmp:.2,sub:.4,gld:.02,seq:false,arp:true,arate:1,aoct:2,bpm:148,dly:.4,rvb:.35},
+ "Forest Pluck":{wave:0,cut:2000,res:.7,fe:.8,dec:.1,rel:.04,pmp:.2,sub:.4,gld:.02,seq:false,arp:true,arate:2,aoct:2,bpm:140,dly:.35,rvb:.3},
+ "Nightmare Bass":{wave:1,cut:900,res:.8,fe:.85,dec:.12,rel:.05,pmp:.45,sub:.8,gld:.06,seq:true,arp:false,bpm:165,dly:.3,rvb:.2},
+ "Euphoria Lead":{wave:0,cut:3200,res:.55,fe:.6,dec:.2,rel:.1,pmp:.15,sub:.4,gld:.03,seq:false,arp:false,bpm:145,dly:.5,rvb:.4},
+ "Shamanic Stab":{wave:1,cut:1600,res:.65,fe:.7,dec:.25,rel:.15,pmp:.2,sub:.5,gld:0,seq:false,arp:false,bpm:142,dly:.3,rvb:.35},
+ "Zenith Pad":{wave:2,cut:1800,res:.35,fe:.35,dec:.5,rel:.4,pmp:.1,sub:.3,gld:0,seq:false,arp:false,bpm:140,dly:.3,rvb:.5}};
 const ps=$("preset"); Object.keys(PRESETS).forEach(k=>{const o=document.createElement("option");o.textContent=k;ps.appendChild(o);});
 ps.onchange=()=>{const p=PRESETS[ps.value];Object.assign(P,p);$("bpm").value=P.bpm;syncDelay();if(dWet)dWet.gain.value=P.dly*.5;if(rWet)rWet.gain.value=P.rvb*.5;stt("preset: "+ps.value);};
 ps.value=Object.keys(PRESETS)[0]; Object.assign(P,PRESETS[ps.value]); $("bpm").value=P.bpm; P.arp=false;P.seq=false;$("arpBtn").classList.remove("on");$("seqBtn").classList.remove("on");
