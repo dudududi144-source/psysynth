@@ -99,7 +99,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
  <div class="m ar"><h4>ARPEGGIATOR + STEP SEQ (synced)</h4>
   <div class="kn">
    <div class="k">Mode<div class="d gr" id="amode"></div><span class="v" id="vAm">up</span></div>
-   <div class="k">Rate<div class="d gr" id="arate"></div><span class="v" id="vAr">16</span></div>
+   <div class="k">Rate<div class="d gr" id="arate"></div><span class="v" id="vAr">1/8</span></div>
    <div class="k">Oct<div class="d gr" id="aoct"></div><span class="v" id="vAo">2</span></div>
    <div class="k">Gate<div class="d gr" id="agate"></div><span class="v" id="vAg">55%</span></div>
    <div class="k">Ratchet<div class="d gr" id="rat"></div><span class="v" id="vRt">off</span></div>
@@ -321,7 +321,7 @@ function arpTick(t,step){ if(!P.arp||!held.size)return; if(P.mask&&!seqPat[step%
  const n=arpNote(); if(n==null)return; const gd=arpStepDur()*P.agate; noteOn(n,.8,tt,gd);
  if(P.rat>=1)noteOn(n,.7,tt+arpStepDur()/2,gd*.5); if(P.rat>=2)noteOn(n,.6,tt+arpStepDur()*0.75,gd*.4); }
 let arpIdx=0,walkIdx=0;
-function arpNote(){ if(P.amel>=0&&held.size){ const root=Math.min(...held); const s=ARPMELODIES[P.amel].s; const n=root+s[arpIdx%s.length]; arpIdx++; return n; }
+function arpNote(){ if(P.amel>=0&&held.size){ const root=Math.min(...held); const s=ARPMELODIES[P.amel].s; const idx=arpIdx%s.length; const oct=Math.floor(arpIdx/s.length)%Math.max(1,P.aoct); const n=root+s[idx]+12*oct; arpIdx++; return n; }
  const arr=[...held].sort((a,b)=>a-b); if(!arr.length)return null;
   const octs=P.aoct; let idx;
   switch(P.amode){case 0: idx=arpIdx%arr.length; break; case 1: idx=(arr.length-1)-(arpIdx%arr.length); break;
