@@ -136,7 +136,7 @@ body{background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;overf
 const $=i=>document.getElementById(i);
 const P={bpm:145,wave:0,det:10,sub:.6,gld:.04,pmp:.3,cut:1800,res:.65,fe:.7,acc:true,
  atk:.001,dec:.16,sus:.55,rel:.06,arp:false,seq:false,amode:0,arate:1,aoct:2,agate:.55,
- lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0,wk:false,scope:false};
+ lfo:.25,lfr:1,drv:.35,dly:.3,rvb:.22,octave:3,fm:0,uni:1,spread:10,dfb:.4,ftype:0,ring:0,crush:0,penv:0,wk:true,scope:false};
 const WAV=['sawtooth','square','triangle'];
 const AMODES=['up','down','updn','rnd'];
 const ARATES=[4,8,16,32];
@@ -157,31 +157,45 @@ function blWave(type){ if(waveCache[type])return waveCache[type];
  const w=ctx.createPeriodicWave(real,imag); waveCache[type]=w; return w; }
 const WK_SRC=`
 registerProcessor("psy-engine",class extends AudioWorkletProcessor{
-constructor(){super();this.V=[];for(let i=0;i<16;i++)this.V.push({on:false,rel:false,p:0,f:440,tf:440,w:0,vel:0,stage:0,tt:0,env:0,fs1:0,fs2:0,note:0});
-this.P={cut:2000,res:.5,atk:.001,dec:.15,sus:.6,rel:.08,glide:.04};
+constructor(){super();
+this.V=[];for(let i=0;i<16;i++)this.V.push({on:false,rel:false,note:0,vel:0,tt:0,env:0,stage:0,ph:[0,0,0],subPh:0,fmPh:0,ringPh:0,f:440,tf:440,fCur:440,fs1:0,fs2:0,w:0,fm:0,ring:0,uni:1,spread:10,penv:0,penvT:9,ftype:0});
+this.P={cut:2000,res:.5,atk:.001,dec:.15,sus:.6,rel:.08,glide:.04,wave:0,fm:0,ring:0,uni:1,spread:10,penv:0,ftype:0};
 this.port.onmessage=e=>{const m=e.data;
 if(m.t==="par")Object.assign(this.P,m.p);
-if(m.t==="on"){const v=this.alloc();v.on=true;v.rel=false;v.note=m.note;v.tf=440*Math.pow(2,(m.note-69)/12);if(this.P.glide<=0)v.f=v.tf;v.p=0;v.vel=m.vel;v.stage=0;v.tt=0;v.env=0;v.fs1=0;v.fs2=0;v.w=m.wave||0;}
+if(m.t==="on"){const v=this.alloc();this.noteOn(v,m);}
 if(m.t==="off"){for(const v of this.V)if(v.on&&v.note===m.note&&!v.rel){v.rel=true;v.stage=2;v.tt=0;}}};}
+hz(n){return 440*Math.pow(2,(n-69)/12);}
 alloc(){for(const v of this.V)if(!v.on)return v;let o=this.V[0];for(const v of this.V)if(v.tt<o.tt)o=v;return o;}
+noteOn(v,m){const P=this.P;v.on=true;v.rel=false;v.note=m.note;v.vel=m.vel;v.tf=this.hz(m.note);
+v.f=(P.glide>0&&v.f>0)?v.f:v.tf;v.ph=[0,0,0];v.subPh=0;v.fmPh=0;v.ringPh=0;v.stage=0;v.tt=0;v.env=0;v.fs1=0;v.fs2=0;
+v.w=(m.wave!=null?m.wave:P.wave);v.fm=(m.fm!=null?m.fm:P.fm);v.ring=(m.ring!=null?m.ring:P.ring);
+v.uni=(m.uni!=null?m.uni:P.uni);v.spread=(m.spread!=null?m.spread:P.spread);v.penv=(m.penv!=null?m.penv:P.penv);
+v.ftype=(m.ftype!=null?m.ftype:P.ftype);
+if(v.penv>0.02){v.penvT=0;}else{v.penvT=9;}}
 blep(t,dt){if(dt<=0)return 0;if(t<dt){const x=t/dt;return x+x-x*x-1;}if(t>1-dt){const x=(t-1)/dt;return x*x+x+x+1;}return 0;}
+waveVal(w,p,dt){if(w===0)return 2*p-1-this.blep(p,dt);if(w===1)return (p<.5?1:-1)+this.blep(p,dt)-this.blep((p+.5)%1,dt);return Math.sin(2*Math.PI*p);}
 process(inp,out){const o=out[0];const sr=sampleRate;const P=this.P;
 for(let n=0;n<o.length;n++){let s=0;
 for(const v of this.V){if(!v.on)continue;
 v.tt+=1/sr;
 v.f+=(v.tf-v.f)*Math.min(1,30/(sr*Math.max(.001,P.glide)));
-const dt=v.f/sr;v.p+=dt;if(v.p>=1)v.p-=1;
-let x;
-if(v.w===0)x=2*v.p-1-this.blep(v.p,dt);
-else if(v.w===1)x=(v.p<.5?1:-1)+this.blep(v.p,dt)-this.blep((v.p+.5)%1,dt);
-else x=Math.sin(2*Math.PI*v.p);
-const w0=Math.min(.85,2*Math.PI*(P.cut*(1+(v.note-48)/96))/sr);
-const q=Math.min(3,P.res*3);
-v.fs1+=w0*(x+q*v.fs2-v.fs1);v.fs2+=w0*(v.fs1-v.fs2);
+if(v.penvT<1){v.penvT+=1/(sr*0.07);v.fCur=v.tf*(1+(Math.pow(2,v.penv)-1)*(1-Math.min(1,v.penvT)));}else{v.fCur=v.f;}
+const f=v.fCur;
+let fm=0;if(v.fm>0.02){v.fmPh+=f*2/sr;if(v.fmPh>=1)v.fmPh-=1;fm=Math.sin(2*Math.PI*v.fmPh)*v.fm*f;}
+const ff=f+fm;
+let pre=0;const uni=Math.max(1,v.uni|0);
+for(let u=0;u<uni;u++){const off=(u===0)?0:((u%2===1?1:-1)*Math.ceil(u/2)*v.spread);const fu=ff*Math.pow(2,off/1200);const dt=fu/sr;v.ph[u]+=dt;if(v.ph[u]>=1)v.ph[u]-=1;pre+=this.waveVal(v.w,v.ph[u],dt);}
+pre/=uni;
+v.subPh+=f/2/sr;if(v.subPh>=1)v.subPh-=1;pre+=Math.sin(2*Math.PI*v.subPh)*0.5;
+if(v.ring>0.02){v.ringPh+=f*1.5/sr;if(v.ringPh>=1)v.ringPh-=1;const r=Math.sin(2*Math.PI*v.ringPh);pre=pre*(1-v.ring)+(pre*r)*v.ring;}
+const w0=Math.min(.85,2*Math.PI*(P.cut*(1+(v.note-48)/96))/sr);const q=Math.min(3,P.res*3);
+v.fs1+=w0*(pre+q*v.fs2-v.fs1);v.fs2+=w0*(v.fs1-v.fs2);
+const lp=v.fs2,hp=pre-v.fs1,bp=v.fs1-v.fs2;
+let flt;if(v.ftype===0)flt=lp;else if(v.ftype===1)flt=hp;else if(v.ftype===2)flt=bp;else flt=pre-bp;
 if(v.stage===0){v.env+=(1-v.env)*Math.min(1,4.6/(sr*Math.max(.0005,P.atk)));if(v.env>.99){v.env=1;v.stage=1;}}
 else if(v.stage===1){v.env+=(P.sus-v.env)*Math.min(1,4.6/(sr*Math.max(.01,P.dec)));}
 else{v.env+=(0-v.env)*Math.min(1,4.6/(sr*Math.max(.01,P.rel)));if(v.env<.01){v.on=false;}}
-s+=v.fs2*v.env*v.vel*.5;}
+s+=flt*v.env*v.vel*.5;}
 o[n][0]=s;o[n][1]=s;}
 return true;}});
 `;
@@ -209,7 +223,7 @@ function steal(){ if(voices.size<effPoly())return; let om=null,ot=1e9; voices.fo
 function kill(m,fast){ const v=voices.get(m); if(!v)return; const t=ctx.currentTime;
  v.a.gain.cancelScheduledValues(t); v.a.gain.setTargetAtTime(0,t,fast?.006:P.rel/4);
  try{v.o.forEach(o=>o.stop(t+(fast?.08:P.rel+.15)));}catch(e){} voices.delete(m); }
-function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended")ctx.resume(); if(P.wk&&wkReady){wkNode.port.postMessage({t:"on",note:m,vel:vel||.8,wave:P.wave});return;}
+function noteOn(m,vel,when,dur){ if(!ensure())return; if(ctx.state==="suspended")ctx.resume(); if(P.wk&&wkReady){wkNode.port.postMessage({t:"on",note:m,vel:vel||.8,wave:P.wave,fm:P.fm,ring:P.ring,uni:P.uni,spread:P.spread,penv:P.penv,ftype:P.ftype});return;}
  const t=when||ctx.currentTime;
  if(voices.has(m))kill(m,true); steal();
  const f=hz(m+(P.octave-3)*12);
@@ -283,7 +297,7 @@ function scopeLoop(){ requestAnimationFrame(scopeLoop); if(!ctx||!ana)return;
  if(c.width!==c.clientWidth*2){c.width=c.clientWidth*2;c.height=c.clientHeight*2;}
  const x=scopeX; x.clearRect(0,0,c.width,c.height); x.strokeStyle="#c93df0"; x.lineWidth=2; x.beginPath();
  for(let i=0;i<scopeBuf.length;i+=4){ const y=(scopeBuf[i]/255)*c.height; x.lineTo(i/scopeBuf.length*c.width,y);} x.stroke(); }
-function sendPar(){ if(wkNode)wkNode.port.postMessage({t:"par",p:{cut:P.cut,res:P.res,atk:P.atk,dec:P.dec,sus:P.sus,rel:P.rel,glide:P.gld}}); }
+function sendPar(){ if(wkNode)wkNode.port.postMessage({t:"par",p:{cut:P.cut,res:P.res,atk:P.atk,dec:P.dec,sus:P.sus,rel:P.rel,glide:P.gld,wave:P.wave,fm:P.fm,ring:P.ring,uni:P.uni,spread:P.spread,penv:P.penv,ftype:P.ftype}}); }
 /* PsyDevice contract */
 window.PsyForgeDevice={ id:"psyforge-pro-x",
  capabilities(){return{audio:true,midi:true,inputs:1,outputs:1,voices:POLY,latencyMs:4,roles:["bass","lead","arp","pad","organ","stab","pluck","keys"]};},
